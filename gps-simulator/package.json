@@ -1,0 +1,19 @@
+{
+  "name": "nirapad-gps-simulator",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Development GPS simulator. Clearly labeled SIMULATION — not a physical device feed.",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
+    "lint": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.7"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.14",
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.2"
+  }
+}

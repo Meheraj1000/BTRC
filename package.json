@@ -1,0 +1,26 @@
+{
+  "name": "nirapad-transit",
+  "version": "1.0.0",
+  "private": true,
+  "description": "AI-Enabled National Smart Public Transport Management and Safety System for Bangladesh (FYDP). Demo/simulation unless a real GPS or government API is configured.",
+  "workspaces": [
+    "backend",
+    "frontend",
+    "gps-simulator"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspaces --if-present",
+    "dev:backend": "node scripts/free-port.cjs 4000 && npm run dev -w backend",
+    "dev:frontend": "node scripts/free-port.cjs 3000 && npm run dev -w frontend",
+    "dev:simulator": "npm run dev -w gps-simulator",
+    "build": "npm run build --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "db:migrate": "npm run prisma:migrate -w backend",
+    "db:seed": "npm run prisma:seed -w backend",
+    "db:reset": "npm run prisma:reset -w backend",
+    "lint": "npm run lint --workspaces --if-present"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

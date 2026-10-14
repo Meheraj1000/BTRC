@@ -1,0 +1,148 @@
+import type { RoleCode } from "@prisma/client";
+
+/**
+ * Runtime authorization source of truth.
+ * The `role_permissions` table is seeded for documentation / future admin UI
+ * and is NOT consulted at request time. Changing seed rows does not change API access.
+ */
+
+export const PERMISSIONS = [
+  "users.manage",
+  "roles.manage",
+  "buses.manage",
+  "buses.read",
+  "buses.verify",
+  "drivers.manage",
+  "drivers.read",
+  "drivers.verify",
+  "companies.manage",
+  "companies.read",
+  "routes.manage",
+  "routes.read",
+  "gps.manage",
+  "gps.ingest",
+  "trips.manage",
+  "trips.own",
+  "alerts.read",
+  "alerts.manage",
+  "sos.read",
+  "sos.create",
+  "sos.manage",
+  "complaints.create",
+  "complaints.read",
+  "complaints.manage",
+  "complaints.note",
+  "lostfound.create",
+  "lostfound.read",
+  "lostfound.manage",
+  "lostfound.claim",
+  "analytics.read",
+  "reports.read",
+  "settings.manage",
+  "audit.read",
+  "simulator.control",
+  "notifications.read",
+] as const;
+
+export type PermissionCode = (typeof PERMISSIONS)[number];
+
+export const ROLE_PERMISSIONS: Record<RoleCode, PermissionCode[]> = {
+  SUPER_ADMIN: [...PERMISSIONS],
+  GOVERNMENT: [
+    "buses.read",
+    "drivers.read",
+    "companies.read",
+    "routes.read",
+    "alerts.read",
+    "sos.read",
+    "sos.manage",
+    "complaints.read",
+    "complaints.note",
+    "lostfound.read",
+    "lostfound.manage",
+    "lostfound.claim",
+    "analytics.read",
+    "reports.read",
+    "notifications.read",
+  ],
+  BRTA: [
+    "buses.read",
+    "buses.verify",
+    "drivers.read",
+    "drivers.verify",
+    "companies.read",
+    "routes.read",
+    "alerts.read",
+    "complaints.read",
+    "complaints.note",
+    "lostfound.read",
+    "lostfound.manage",
+    "lostfound.claim",
+    "analytics.read",
+    "reports.read",
+    "notifications.read",
+  ],
+  POLICE: [
+    "buses.read",
+    "drivers.read",
+    "routes.read",
+    "alerts.read",
+    "alerts.manage",
+    "sos.read",
+    "sos.manage",
+    "complaints.read",
+    "complaints.note",
+    "lostfound.read",
+    "lostfound.manage",
+    "lostfound.claim",
+    "analytics.read",
+    "reports.read",
+    "notifications.read",
+  ],
+  TRANSPORT_OWNER: [
+    "buses.manage",
+    "buses.read",
+    "drivers.manage",
+    "drivers.read",
+    "routes.manage",
+    "routes.read",
+    "trips.manage",
+    "alerts.read",
+    "complaints.read",
+    "complaints.note",
+    "lostfound.read",
+    "lostfound.manage",
+    "lostfound.claim",
+    "analytics.read",
+    "reports.read",
+    "notifications.read",
+  ],
+  DRIVER: [
+    "buses.read",
+    "routes.read",
+    "trips.own",
+    "gps.ingest",
+    "sos.create",
+    "alerts.read",
+    "notifications.read",
+  ],
+  PASSENGER: [
+    "buses.read",
+    "routes.read",
+    "sos.create",
+    "complaints.create",
+    "complaints.read",
+    "lostfound.create",
+    "lostfound.read",
+    "lostfound.claim",
+    "notifications.read",
+  ],
+};
+
+export function hasPermission(roles: RoleCode[], permission: PermissionCode) {
+  return roles.some((role) => ROLE_PERMISSIONS[role]?.includes(permission));
+}
+
+export function hasAnyRole(roles: RoleCode[], allowed: RoleCode[]) {
+  return roles.some((r) => allowed.includes(r));
+}

@@ -1,0 +1,969 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum RoleCode {
+  SUPER_ADMIN
+  GOVERNMENT
+  BRTA
+  POLICE
+  TRANSPORT_OWNER
+  DRIVER
+  PASSENGER
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum LicenseStatus {
+  VALID
+  EXPIRED
+  SUSPENDED
+  PENDING
+}
+
+enum FitnessStatus {
+  FIT
+  UNFIT
+  EXPIRED
+  PENDING
+}
+
+enum RegistrationStatus {
+  ACTIVE
+  EXPIRED
+  SUSPENDED
+  PENDING
+}
+
+enum InsuranceStatus {
+  VALID
+  EXPIRED
+  NONE
+}
+
+enum BusOperationalStatus {
+  ACTIVE
+  INACTIVE
+  MAINTENANCE
+  OFFLINE
+}
+
+enum TripStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum AlertType {
+  OVERSPEED
+  ROUTE_DEVIATION
+  SOS
+  ACCIDENT
+  ABNORMAL_DRIVING
+  SYSTEM
+}
+
+enum AlertSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum AlertStatus {
+  OPEN
+  ACKNOWLEDGED
+  RESOLVED
+}
+
+enum SosStatus {
+  OPEN
+  ACKNOWLEDGED
+  DISPATCHED
+  INVESTIGATING
+  RESPONDING
+  RESOLVED
+  FALSE_ALARM
+  CANCELLED
+  CLOSED
+}
+
+enum SosLocationSource {
+  DEVICE
+  VEHICLE
+  PROVIDED
+  UNAVAILABLE
+}
+
+enum ComplaintCategory {
+  OVERSPEEDING
+  DRIVER_BEHAVIOR
+  HARASSMENT_SECURITY
+  ROUTE
+  BUS_CONDITION
+  OVERCROWDING
+  SCHEDULE_ISSUE
+  FARE_ISSUE
+  SAFETY_CONCERN
+  SERVICE_QUALITY
+  LOST_PROPERTY
+  OTHER
+}
+
+enum ComplaintStatus {
+  PENDING
+  UNDER_REVIEW
+  RESOLVED
+  REJECTED
+}
+
+enum ComplaintPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum LostFoundItemKind {
+  LOST
+  FOUND
+}
+
+enum LostFoundStatus {
+  LOST
+  FOUND
+  MATCHED
+  CLAIM_PENDING
+  RETURNED
+  CLOSED
+  CANCELLED
+}
+
+enum LostFoundClaimStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum NotificationType {
+  SOS
+  OVERSPEEDING
+  ROUTE_DEVIATION
+  COMPLAINT_UPDATE
+  LOST_FOUND
+  TRIP_START
+  TRIP_END
+  DRIVER_ASSIGNMENT
+  SYSTEM_ANNOUNCEMENT
+}
+
+enum GpsDataSource {
+  SIMULATION
+  DEVICE
+  PUBLIC_DATASET
+  SYNTHETIC
+}
+
+enum DataSourceLabel {
+  REAL
+  SIMULATED
+  PUBLIC_DATASET
+  SYNTHETIC
+}
+
+enum AccidentSeverity {
+  MINOR
+  MODERATE
+  SEVERE
+  FATAL
+}
+
+enum VehicleType {
+  STANDARD_BUS
+  MINIBUS
+  AC_BUS
+  DOUBLE_DECKER
+  ARTICULATED
+}
+
+enum RouteComplianceStatus {
+  UNASSIGNED
+  ON_ROUTE
+  NEAR_ROUTE
+  DEVIATING
+  OFF_ROUTE
+  STALE
+}
+
+// ---------------------------------------------------------------------------
+// Identity & RBAC
+// ---------------------------------------------------------------------------
+
+model User {
+  id           String     @id @default(uuid())
+  email        String     @unique
+  phone        String?    @unique
+  passwordHash String
+  fullName     String
+  status       UserStatus @default(ACTIVE)
+  lastLoginAt  DateTime?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  deletedAt    DateTime?
+
+  userRoles          UserRole[]
+  passenger          Passenger?
+  driver             Driver?
+  ownedCompany       TransportCompany?
+  notifications      Notification[]
+  auditLogs          AuditLog[]
+  sosRequests        SosRequest[]
+  complaintsFiled    Complaint[]          @relation("ComplaintPassenger")
+  complaintsResolved Complaint[]          @relation("ComplaintResolver")
+  complaintsAssigned Complaint[]          @relation("ComplaintAssignee")
+  lostFoundReported  LostFoundItem[]      @relation("LostFoundReporter")
+  lostFoundClaimed   LostFoundItem[]      @relation("LostFoundClaimant")
+  lostFoundDecided   LostFoundItem[]      @relation("LostFoundDecider")
+  favoriteRoutes     PassengerFavorite[]
+  refreshTokens      RefreshToken[]
+
+  @@index([status])
+  @@index([deletedAt])
+  @@map("users")
+}
+
+model Role {
+  id          String   @id @default(uuid())
+  code        RoleCode @unique
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  userRoles   UserRole[]
+  permissions RolePermission[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id          String   @id @default(uuid())
+  code        String   @unique
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+
+  roles RolePermission[]
+
+  @@map("permissions")
+}
+
+model UserRole {
+  userId     String
+  roleId     String
+  assignedAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+  @@map("user_roles")
+}
+
+model RolePermission {
+  roleId       String
+  permissionId String
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model RefreshToken {
+  id        String    @id @default(uuid())
+  userId    String
+  tokenHash String
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([tokenHash])
+  @@map("refresh_tokens")
+}
+
+// ---------------------------------------------------------------------------
+// People
+// ---------------------------------------------------------------------------
+
+model Passenger {
+  id                 String    @id @default(uuid())
+  userId             String    @unique
+  emergencyContact   String?
+  emergencyName      String?
+  preferredLanguage  String    @default("bn")
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  deletedAt          DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("passengers")
+}
+
+model PassengerFavorite {
+  id          String   @id @default(uuid())
+  userId      String
+  routeId     String?
+  busId       String?
+  createdAt   DateTime @default(now())
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  route Route? @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  bus   Bus?   @relation(fields: [busId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("passenger_favorites")
+}
+
+model Driver {
+  id              String        @id @default(uuid())
+  userId          String        @unique
+  companyId       String?
+  licenseNumber   String        @unique
+  licenseStatus   LicenseStatus @default(PENDING)
+  licenseExpiry   DateTime?
+  experienceYears Int           @default(0)
+  nidReference    String?
+  violationCount  Int           @default(0)
+  performanceScore Decimal      @default(80) @db.Decimal(5, 2)
+  status          UserStatus    @default(ACTIVE)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  deletedAt       DateTime?
+
+  user         User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company      TransportCompany?  @relation(fields: [companyId], references: [id])
+  documents    DriverDocument[]
+  assignments  DriverAssignment[]
+  trips        Trip[]
+  alerts       Alert[]
+  violations   Violation[]
+  buses        Bus[]
+  gpsSamples   GpsLocation[]
+  complaints   Complaint[]
+  sosRequests  SosRequest[]
+  lostFoundItems LostFoundItem[]
+
+  @@index([companyId])
+  @@index([licenseStatus])
+  @@index([status])
+  @@map("drivers")
+}
+
+model DriverDocument {
+  id         String    @id @default(uuid())
+  driverId   String
+  docType    String
+  docNumber  String?
+  issuedAt   DateTime?
+  expiresAt  DateTime?
+  status     String    @default("PENDING")
+  fileUrl    String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  driver Driver @relation(fields: [driverId], references: [id], onDelete: Cascade)
+
+  @@index([driverId])
+  @@map("driver_documents")
+}
+
+// ---------------------------------------------------------------------------
+// Operators & vehicles
+// ---------------------------------------------------------------------------
+
+model TransportCompany {
+  id           String     @id @default(uuid())
+  name         String
+  registration String     @unique
+  phone        String?
+  email        String?
+  address      String?
+  city         String?
+  ownerUserId  String?    @unique
+  status       UserStatus @default(ACTIVE)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  deletedAt    DateTime?
+
+  owner   User?    @relation(fields: [ownerUserId], references: [id])
+  buses   Bus[]
+  drivers Driver[]
+  routes  Route[]
+
+  @@index([status])
+  @@map("transport_companies")
+}
+
+model Bus {
+  id                 String               @id @default(uuid())
+  registrationNo     String               @unique
+  /** Public scan token for vehicle QR codes (passenger landing page). */
+  qrToken            String?              @unique
+  vehicleType        VehicleType          @default(STANDARD_BUS)
+  manufacturer       String?
+  model              String?
+  capacity           Int                  @default(40)
+  companyId          String
+  routeId            String?
+  driverId           String?
+  gpsDeviceId        String?              @unique
+  fitnessStatus      FitnessStatus        @default(PENDING)
+  registrationStatus RegistrationStatus   @default(PENDING)
+  insuranceStatus    InsuranceStatus      @default(NONE)
+  operationalStatus  BusOperationalStatus @default(INACTIVE)
+  yearOfManufacture  Int?
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  deletedAt          DateTime?
+
+  company      TransportCompany    @relation(fields: [companyId], references: [id])
+  route        Route?              @relation(fields: [routeId], references: [id])
+  driver       Driver?             @relation(fields: [driverId], references: [id])
+  gpsDevice    GpsDevice?          @relation(fields: [gpsDeviceId], references: [id])
+  assignments  BusAssignment[]
+  trips        Trip[]
+  latestLoc          GpsLatestLocation?
+  gpsHistory         GpsLocation[]
+  alerts             Alert[]
+  complaints         Complaint[]
+  lostFoundItems     LostFoundItem[]
+  violations         Violation[]
+  favorites          PassengerFavorite[]
+  accidents          Accident[]
+  driverAssignments  DriverAssignment[]
+  sosRequests        SosRequest[]
+  complianceState    RouteComplianceState?
+  complianceEvents   RouteComplianceEvent[]
+
+  @@index([companyId])
+  @@index([routeId])
+  @@index([operationalStatus])
+  @@map("buses")
+}
+
+model GpsDevice {
+  id            String     @id @default(uuid())
+  serialNumber  String     @unique
+  vendor        String?
+  firmware      String?
+  status        UserStatus @default(ACTIVE)
+  installedAt   DateTime?
+  notes         String?
+  dataSource    GpsDataSource @default(SIMULATION)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  deletedAt     DateTime?
+
+  bus Bus?
+
+  @@map("gps_devices")
+}
+
+// ---------------------------------------------------------------------------
+// Routes
+// ---------------------------------------------------------------------------
+
+model Route {
+  id            String   @id @default(uuid())
+  code          String   @unique
+  name          String
+  startName     String
+  endName       String
+  startLat      Decimal  @db.Decimal(10, 7)
+  startLng      Decimal  @db.Decimal(10, 7)
+  endLat        Decimal  @db.Decimal(10, 7)
+  endLng        Decimal  @db.Decimal(10, 7)
+  city          String
+  allowedSpeed  Int      @default(40)
+  polyline      Json
+  status        UserStatus @default(ACTIVE)
+  companyId     String?
+  isDemo        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  deletedAt     DateTime?
+
+  company     TransportCompany?  @relation(fields: [companyId], references: [id])
+  stops       RouteStop[]
+  buses       Bus[]
+  trips       Trip[]
+  favorites   PassengerFavorite[]
+  gpsSamples  GpsLocation[]
+  alerts      Alert[]
+  assignments        BusAssignment[]
+  complianceStates   RouteComplianceState[]
+  complianceEvents   RouteComplianceEvent[]
+  sosRequests        SosRequest[]
+  complaints         Complaint[]
+  lostFoundItems     LostFoundItem[]
+
+  @@index([city])
+  @@index([status])
+  @@index([companyId])
+  @@index([deletedAt])
+  @@map("routes")
+}
+
+model RouteStop {
+  id        String  @id @default(uuid())
+  routeId   String
+  name      String
+  sequence  Int
+  latitude  Decimal @db.Decimal(10, 7)
+  longitude Decimal @db.Decimal(10, 7)
+  dwellSeconds Int  @default(30)
+
+  route Route @relation(fields: [routeId], references: [id], onDelete: Cascade)
+
+  @@unique([routeId, sequence])
+  @@index([routeId])
+  @@map("route_stops")
+}
+
+model BusAssignment {
+  id         String    @id @default(uuid())
+  busId      String
+  routeId    String
+  assignedAt DateTime  @default(now())
+  endedAt    DateTime?
+  notes      String?
+
+  bus   Bus   @relation(fields: [busId], references: [id], onDelete: Cascade)
+  route Route @relation(fields: [routeId], references: [id])
+
+  @@index([busId])
+  @@index([routeId])
+  @@index([busId, endedAt])
+  @@map("bus_assignments")
+}
+
+model RouteComplianceState {
+  busId          String                @id
+  routeId        String?
+  status         RouteComplianceStatus @default(UNASSIGNED)
+  deviationM     Decimal?              @db.Decimal(8, 2)
+  consecutiveOff Int                   @default(0)
+  consecutiveOn  Int                   @default(0)
+  updatedAt      DateTime              @updatedAt
+
+  bus   Bus    @relation(fields: [busId], references: [id], onDelete: Cascade)
+  route Route? @relation(fields: [routeId], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([routeId])
+  @@map("route_compliance_states")
+}
+
+model RouteComplianceEvent {
+  id         String                @id @default(uuid())
+  busId      String
+  routeId    String?
+  fromStatus RouteComplianceStatus
+  toStatus   RouteComplianceStatus
+  deviationM Decimal?              @db.Decimal(8, 2)
+  latitude   Decimal               @db.Decimal(10, 7)
+  longitude  Decimal               @db.Decimal(10, 7)
+  createdAt  DateTime              @default(now())
+
+  bus   Bus    @relation(fields: [busId], references: [id], onDelete: Cascade)
+  route Route? @relation(fields: [routeId], references: [id], onDelete: SetNull)
+
+  @@index([busId, createdAt])
+  @@index([routeId, createdAt])
+  @@index([toStatus, createdAt])
+  @@map("route_compliance_events")
+}
+
+model DriverAssignment {
+  id         String    @id @default(uuid())
+  driverId   String
+  busId      String
+  assignedAt DateTime  @default(now())
+  endedAt    DateTime?
+  notes      String?
+
+  driver Driver @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  bus    Bus    @relation(fields: [busId], references: [id])
+
+  @@index([driverId])
+  @@index([busId])
+  @@map("driver_assignments")
+}
+
+// ---------------------------------------------------------------------------
+// Operations
+// ---------------------------------------------------------------------------
+
+model Trip {
+  id          String     @id @default(uuid())
+  busId       String
+  driverId    String
+  routeId     String
+  status      TripStatus @default(IN_PROGRESS)
+  startedAt   DateTime   @default(now())
+  endedAt     DateTime?
+  startLat    Decimal?   @db.Decimal(10, 7)
+  startLng    Decimal?   @db.Decimal(10, 7)
+  endLat      Decimal?   @db.Decimal(10, 7)
+  endLng      Decimal?   @db.Decimal(10, 7)
+  distanceKm  Decimal?   @db.Decimal(8, 2)
+  maxSpeed    Decimal?   @db.Decimal(6, 2)
+  avgSpeed    Decimal?   @db.Decimal(6, 2)
+  dataSource  DataSourceLabel @default(SIMULATED)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  bus       Bus           @relation(fields: [busId], references: [id])
+  driver    Driver        @relation(fields: [driverId], references: [id])
+  route     Route         @relation(fields: [routeId], references: [id])
+  locations   GpsLocation[]
+  alerts      Alert[]
+  sosRequests SosRequest[]
+  complaints  Complaint[]
+  lostFoundItems LostFoundItem[]
+
+  @@index([busId, startedAt])
+  @@index([driverId])
+  @@index([routeId])
+  @@index([status])
+  @@map("trips")
+}
+
+model GpsLocation {
+  id        String         @id @default(uuid())
+  busId     String
+  deviceId  String?
+  tripId    String?
+  routeId   String?
+  driverId  String?
+  latitude  Decimal        @db.Decimal(10, 7)
+  longitude Decimal        @db.Decimal(10, 7)
+  speed     Decimal        @db.Decimal(6, 2)
+  heading   Decimal        @db.Decimal(6, 2)
+  timestamp DateTime
+  source    GpsDataSource  @default(SIMULATION)
+  createdAt DateTime       @default(now())
+
+  bus    Bus     @relation(fields: [busId], references: [id])
+  trip   Trip?   @relation(fields: [tripId], references: [id], onDelete: SetNull)
+  driver Driver? @relation(fields: [driverId], references: [id], onDelete: SetNull)
+  route  Route?  @relation(fields: [routeId], references: [id], onDelete: SetNull)
+
+  @@index([busId, timestamp])
+  @@index([tripId, timestamp])
+  @@index([routeId, timestamp])
+  @@map("gps_locations")
+}
+
+model GpsLatestLocation {
+  busId     String         @id
+  deviceId  String?
+  tripId    String?
+  routeId   String?
+  driverId  String?
+  latitude  Decimal        @db.Decimal(10, 7)
+  longitude Decimal        @db.Decimal(10, 7)
+  speed     Decimal        @db.Decimal(6, 2)
+  heading   Decimal        @db.Decimal(6, 2)
+  timestamp DateTime
+  source    GpsDataSource  @default(SIMULATION)
+  updatedAt DateTime       @updatedAt
+
+  bus Bus @relation(fields: [busId], references: [id], onDelete: Cascade)
+
+  @@index([latitude, longitude])
+  @@index([timestamp])
+  @@map("gps_latest_locations")
+}
+
+// ---------------------------------------------------------------------------
+// Safety
+// ---------------------------------------------------------------------------
+
+model Alert {
+  id            String        @id @default(uuid())
+  type          AlertType
+  severity      AlertSeverity @default(MEDIUM)
+  status        AlertStatus   @default(OPEN)
+  busId         String?
+  driverId      String?
+  tripId        String?
+  routeId       String?
+  latitude      Decimal?      @db.Decimal(10, 7)
+  longitude     Decimal?      @db.Decimal(10, 7)
+  speed         Decimal?      @db.Decimal(6, 2)
+  allowedSpeed  Int?
+  deviationM    Decimal?      @db.Decimal(8, 2)
+  message       String
+  dataSource    DataSourceLabel @default(SIMULATED)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  resolvedAt    DateTime?
+
+  bus    Bus?    @relation(fields: [busId], references: [id], onDelete: SetNull)
+  driver Driver? @relation(fields: [driverId], references: [id], onDelete: SetNull)
+  trip   Trip?   @relation(fields: [tripId], references: [id], onDelete: SetNull)
+  route  Route?  @relation(fields: [routeId], references: [id], onDelete: SetNull)
+
+  @@index([type, status])
+  @@index([createdAt])
+  @@index([busId])
+  @@map("alerts")
+}
+
+model SosRequest {
+  id              String            @id @default(uuid())
+  userId          String
+  roleHint        String
+  busId           String?
+  tripId          String?
+  routeId         String?
+  driverId        String?
+  alertId         String?
+  latitude        Decimal?          @db.Decimal(10, 7)
+  longitude       Decimal?          @db.Decimal(10, 7)
+  locationSource  SosLocationSource @default(UNAVAILABLE)
+  locationAt      DateTime?
+  message         String?
+  category        String?
+  internalNote    String?
+  idempotencyKey  String?           @unique
+  status          SosStatus         @default(OPEN)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  resolvedAt      DateTime?
+  cancelledAt     DateTime?
+  cancelledById   String?
+
+  user   User    @relation(fields: [userId], references: [id])
+  bus    Bus?    @relation(fields: [busId], references: [id], onDelete: SetNull)
+  trip   Trip?   @relation(fields: [tripId], references: [id], onDelete: SetNull)
+  route  Route?  @relation(fields: [routeId], references: [id], onDelete: SetNull)
+  driver Driver? @relation(fields: [driverId], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([userId, status])
+  @@index([busId])
+  @@index([createdAt])
+  @@map("sos_requests")
+}
+
+model Complaint {
+  id           String             @id @default(uuid())
+  reference    String             @unique
+  passengerId  String
+  busId        String?
+  driverId     String?
+  routeId      String?
+  tripId       String?
+  category     ComplaintCategory
+  subject      String
+  description  String
+  priority     ComplaintPriority   @default(MEDIUM)
+  latitude     Decimal?            @db.Decimal(10, 7)
+  longitude    Decimal?            @db.Decimal(10, 7)
+  evidenceUrl  String?
+  status       ComplaintStatus     @default(PENDING)
+  internalNote String?
+  resolution   String?
+  assignedToId String?
+  resolvedById String?
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  resolvedAt   DateTime?
+
+  passenger  User    @relation("ComplaintPassenger", fields: [passengerId], references: [id])
+  resolver   User?   @relation("ComplaintResolver", fields: [resolvedById], references: [id], onDelete: SetNull)
+  assignee   User?   @relation("ComplaintAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  bus        Bus?    @relation(fields: [busId], references: [id], onDelete: SetNull)
+  driver     Driver? @relation(fields: [driverId], references: [id], onDelete: SetNull)
+  route      Route?  @relation(fields: [routeId], references: [id], onDelete: SetNull)
+  trip       Trip?   @relation(fields: [tripId], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([priority, createdAt])
+  @@index([passengerId])
+  @@index([routeId])
+  @@index([busId])
+  @@index([driverId])
+  @@map("complaints")
+}
+
+model LostFoundItem {
+  id           String              @id @default(uuid())
+  reference    String              @unique
+  kind         LostFoundItemKind
+  category     String
+  title        String
+  description  String
+  status       LostFoundStatus     @default(LOST)
+  claimStatus  LostFoundClaimStatus @default(PENDING)
+  reporterId   String
+  reporterRole String
+  busId        String?
+  routeId      String?
+  driverId     String?
+  tripId       String?
+  lostAt       DateTime?
+  foundAt      DateTime?
+  locationText String?
+  latitude     Decimal?            @db.Decimal(10, 7)
+  longitude    Decimal?            @db.Decimal(10, 7)
+  internalNote String?
+  claimNote    String?
+  claimEvidence String?
+  matchedItemId String?
+  claimedById  String?
+  claimedAt    DateTime?
+  decidedById  String?
+  returnedAt   DateTime?
+  cancelledAt  DateTime?
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+
+  reporter   User    @relation("LostFoundReporter", fields: [reporterId], references: [id])
+  bus        Bus?    @relation(fields: [busId], references: [id], onDelete: SetNull)
+  route      Route?  @relation(fields: [routeId], references: [id], onDelete: SetNull)
+  driver     Driver? @relation(fields: [driverId], references: [id], onDelete: SetNull)
+  trip       Trip?   @relation(fields: [tripId], references: [id], onDelete: SetNull)
+  claimedBy  User?   @relation("LostFoundClaimant", fields: [claimedById], references: [id], onDelete: SetNull)
+  decidedBy  User?   @relation("LostFoundDecider", fields: [decidedById], references: [id], onDelete: SetNull)
+  matchedItem LostFoundItem? @relation("LostFoundMatch", fields: [matchedItemId], references: [id], onDelete: SetNull)
+  matches    LostFoundItem[] @relation("LostFoundMatch")
+
+  @@index([kind, status, createdAt])
+  @@index([reporterId, createdAt])
+  @@index([busId])
+  @@index([routeId])
+  @@index([driverId])
+  @@index([tripId])
+  @@map("lost_found_items")
+}
+
+model Accident {
+  id          String           @id @default(uuid())
+  busId       String?
+  latitude    Decimal          @db.Decimal(10, 7)
+  longitude   Decimal          @db.Decimal(10, 7)
+  severity    AccidentSeverity @default(MINOR)
+  description String?
+  reportedAt  DateTime         @default(now())
+  dataSource  DataSourceLabel  @default(SIMULATED)
+  createdAt   DateTime         @default(now())
+
+  bus Bus? @relation(fields: [busId], references: [id])
+
+  @@index([reportedAt])
+  @@map("accidents")
+}
+
+model Violation {
+  id           String   @id @default(uuid())
+  busId        String?
+  driverId     String?
+  type         String
+  description  String
+  latitude     Decimal? @db.Decimal(10, 7)
+  longitude    Decimal? @db.Decimal(10, 7)
+  recordedAt   DateTime @default(now())
+  dataSource   DataSourceLabel @default(SIMULATED)
+  createdAt    DateTime @default(now())
+
+  bus    Bus?    @relation(fields: [busId], references: [id])
+  driver Driver? @relation(fields: [driverId], references: [id])
+
+  @@index([driverId])
+  @@index([busId])
+  @@map("violations")
+}
+
+// ---------------------------------------------------------------------------
+// Platform
+// ---------------------------------------------------------------------------
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String
+  type      NotificationType
+  title     String
+  body      String
+  payload   Json?
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([userId, readAt])
+  @@map("notifications")
+}
+
+model AnalyticsSnapshot {
+  id         String   @id @default(uuid())
+  metricKey  String
+  metricDate DateTime @db.Date
+  value      Decimal  @db.Decimal(14, 2)
+  meta       Json?
+  createdAt  DateTime @default(now())
+
+  @@unique([metricKey, metricDate])
+  @@map("analytics")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String?
+  action     String
+  entity     String?
+  entityId   String?
+  ipAddress  String?
+  userAgent  String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([createdAt])
+  @@index([userId])
+  @@index([entity, entityId])
+  @@map("audit_logs")
+}
+
+model SystemSetting {
+  key       String   @id
+  value     String
+  groupName String   @default("general")
+  updatedAt DateTime @updatedAt
+
+  @@map("system_settings")
+}

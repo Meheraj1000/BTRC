@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 72" role="img" aria-label="Nirapad Transit">
+  <rect width="360" height="72" rx="12" fill="#0B1F33"/>
+  <g transform="translate(10 8)">
+    <rect width="56" height="56" rx="12" fill="#0B1F33"/>
+    <path fill="#2A9B6A" d="M28 6c7 3.5 14 3.5 19.5 3.5V26c0 12.2-8.3 19.6-19.5 22.7C16.8 45.6 8.5 38.2 8.5 26V9.5C13.8 9.5 21 9.5 28 6z"/>
+    <path fill="#006747" d="M28 14c4.8 2.3 9.6 2.3 13.1 2.3V26c0 7.8-5.4 12.7-13.1 14.9C20.4 38.7 15 33.8 15 26V16.3c3.4 0 8.2 0 13-2.3z"/>
+    <path fill="#F3F6F4" d="M28 21l7 3.5v7c0 4.4-3 7-7 8.2-4-.9-7-3.8-7-8.2v-7L28 21z"/>
+  </g>
+  <text x="80" y="32" fill="#F3F6F4" font-family="ui-sans-serif, system-ui, sans-serif" font-size="20" font-weight="700">Nirapad Transit</text>
+  <text x="80" y="52" fill="#2A9B6A" font-family="ui-sans-serif, system-ui, sans-serif" font-size="11" font-weight="600" letter-spacing="1.4">SAFE PUBLIC TRANSPORT</text>
+</svg>
