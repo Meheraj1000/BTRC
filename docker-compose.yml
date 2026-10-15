@@ -25,7 +25,10 @@ services:
       timeout: 3s
       retries: 8
 
+  # Use profile "full" when running the stack in Docker.
+  # For local npm dev (npm run dev:frontend / dev:backend), only start: docker compose up -d db redis
   backend:
+    profiles: ["full"]
     build:
       context: ./backend
     env_file:
@@ -41,6 +44,7 @@ services:
         condition: service_healthy
 
   frontend:
+    profiles: ["full"]
     build:
       context: ./frontend
       args:
