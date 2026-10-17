@@ -46,8 +46,10 @@ export function isDriverEligibleForDuty(driver: {
   licenseStatus: string;
   licenseExpiry?: Date | string | null;
   licenseNumber?: string | null;
+  registrationStatus?: string | null;
 }) {
   if (driver.deletedAt) return false;
+  if (driver.registrationStatus && driver.registrationStatus !== "APPROVED") return false;
   if (driver.status !== "ACTIVE") return false;
   const validity = licenseValidity(driver);
   return validity === "VALID" || validity === "EXPIRING_SOON";
@@ -59,8 +61,15 @@ export function driverAssignmentBlockReason(driver: {
   licenseStatus: string;
   licenseExpiry?: Date | string | null;
   licenseNumber?: string | null;
+  registrationStatus?: string | null;
 }) {
   if (driver.deletedAt) return "This driver has been archived";
+  if (driver.registrationStatus === "PENDING_REVIEW") {
+    return "Driver registration is awaiting Super Admin review";
+  }
+  if (driver.registrationStatus === "REJECTED") {
+    return "Driver registration was rejected";
+  }
   if (driver.status === "SUSPENDED") return "Suspended drivers cannot be assigned to a vehicle";
   if (driver.status === "INACTIVE") return "Inactive drivers cannot be assigned to a vehicle";
   const validity = licenseValidity(driver);
@@ -103,6 +112,8 @@ type DriverRow = {
   licenseExpiry: Date | null;
   experienceYears: number;
   status: string;
+  registrationStatus?: string | null;
+  registrationNote?: string | null;
   violationCount: number;
   performanceScore: unknown;
   createdAt: Date;
@@ -121,6 +132,7 @@ type DriverRow = {
 
 export function projectDriver(driver: DriverRow, roles: RoleCode[]) {
   const validity = licenseValidity(driver);
+  const registrationStatus = driver.registrationStatus ?? "APPROVED";
   const base = {
     id: driver.id,
     fullName: driver.user?.fullName ?? null,
@@ -129,6 +141,8 @@ export function projectDriver(driver: DriverRow, roles: RoleCode[]) {
     licenseExpiry: driver.licenseExpiry,
     licenseValidity: validity,
     status: driver.status,
+    registrationStatus,
+    registrationNote: driver.registrationNote ?? null,
     experienceYears: driver.experienceYears,
     verificationLabel: "MANUAL / SIMULATED VERIFICATION",
     company: driver.company

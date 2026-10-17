@@ -36,6 +36,7 @@ export const NAV: Record<string, NavItem[]> = {
   ],
   POLICE: [
     { href: "/police/dashboard", label: "Dashboard" },
+    { href: "/police/buses", label: "Vehicle lookup" },
     { href: "/police/live-map", label: "Live map" },
     { href: "/police/emergencies", label: "Emergencies" },
     { href: "/police/alerts", label: "Alerts" },

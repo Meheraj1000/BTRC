@@ -1,12 +1,27 @@
 import { Router } from "express";
 import { z } from "zod";
 import { ok } from "../lib/apiResponse.js";
+import { prisma } from "../lib/prisma.js";
 import { optionalAuth } from "../middlewares/auth.js";
 import { qrEmergencyLimiter } from "../middlewares/rateLimits.js";
 import { validate } from "../middlewares/validate.js";
 import { createQrEmergency, getPublicBusByQrToken } from "../services/publicBus.service.js";
 
 const router = Router();
+
+/** Operator list for driver self-registration (id + name only). */
+router.get("/companies", async (_req, res, next) => {
+  try {
+    const items = await prisma.transportCompany.findMany({
+      where: { deletedAt: null },
+      select: { id: true, name: true, city: true },
+      orderBy: { name: "asc" },
+    });
+    return ok(res, items);
+  } catch (err) {
+    next(err);
+  }
+});
 
 router.get("/buses/:qrToken", async (req, res, next) => {
   try {

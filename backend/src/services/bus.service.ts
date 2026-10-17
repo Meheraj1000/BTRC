@@ -31,9 +31,23 @@ import { ensureBusQrToken } from "./publicBus.service.js";
 import { newQrToken } from "../utils/qrToken.js";
 
 export const busInclude = {
-  company: { select: { id: true, name: true } },
-  route: { select: { id: true, name: true, code: true, allowedSpeed: true } },
-  driver: { include: { user: { select: { fullName: true } } } },
+  company: { select: { id: true, name: true, city: true } },
+  route: {
+    select: {
+      id: true,
+      name: true,
+      code: true,
+      startName: true,
+      endName: true,
+      city: true,
+      allowedSpeed: true,
+    },
+  },
+  driver: {
+    include: {
+      user: { select: { fullName: true } },
+    },
+  },
   latestLoc: true,
   complianceState: { select: { status: true, deviationM: true } },
 } satisfies Prisma.BusInclude;

@@ -1,4 +1,4 @@
-import type { LicenseStatus, Prisma, RoleCode, UserStatus } from "@prisma/client";
+import type { DriverRegistrationStatus, LicenseStatus, Prisma, RoleCode, UserStatus } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import type { Request } from "express";
 import { ApiError } from "../lib/apiResponse.js";
@@ -72,6 +72,9 @@ export async function listDrivers(req: Request) {
   }
   if (typeof req.query.status === "string") {
     where.status = req.query.status as UserStatus;
+  }
+  if (typeof req.query.registrationStatus === "string" && req.query.registrationStatus) {
+    where.registrationStatus = req.query.registrationStatus as DriverRegistrationStatus;
   }
   if (q) {
     where.OR = [
@@ -198,10 +201,106 @@ export async function createDriver(req: Request, body: {
       experienceYears: body.experienceYears ?? 0,
       licenseStatus: "PENDING",
       status: "ACTIVE",
+      registrationStatus: "APPROVED",
+      registrationNote: null,
     },
     include: driverInclude,
   });
+  // Admin/owner-created accounts are usable immediately.
+  await prisma.user.update({
+    where: { id: userId! },
+    data: { status: "ACTIVE" },
+  });
   return projectDriver(created, rolesOf(req));
+}
+
+function assertSuperAdmin(req: Request) {
+  if (!rolesOf(req).includes("SUPER_ADMIN")) {
+    throw new ApiError("Only a Super Admin can review driver registrations", 403);
+  }
+}
+
+export async function reviewDriverRegistration(
+  req: Request,
+  id: string,
+  decision: "APPROVE" | "REJECT",
+  options?: { companyId?: string | null; note?: string | null },
+) {
+  assertSuperAdmin(req);
+  const existing = await prisma.driver.findFirst({
+    where: { id, deletedAt: null },
+    include: { user: true },
+  });
+  if (!existing) throw new ApiError("Driver not found", 404);
+  if (existing.registrationStatus !== "PENDING_REVIEW") {
+    throw new ApiError("This driver registration is not awaiting review", 409);
+  }
+
+  if (decision === "REJECT") {
+    const updated = await prisma.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id: existing.userId },
+        data: { status: "INACTIVE" },
+      });
+      return tx.driver.update({
+        where: { id: existing.id },
+        data: {
+          status: "INACTIVE",
+          registrationStatus: "REJECTED",
+          registrationNote: options?.note?.trim() || "Rejected by Super Admin — details were incorrect or incomplete.",
+        },
+        include: driverInclude,
+      });
+    });
+    await notifyUser({
+      userId: existing.userId,
+      type: "SYSTEM_ANNOUNCEMENT",
+      title: "Driver registration rejected",
+      body: options?.note?.trim()
+        || "Your driver registration was rejected. Contact the Super Admin or submit a new application with correct details.",
+      payload: { driverId: existing.id, registrationStatus: "REJECTED" },
+    });
+    return projectDriver(updated, rolesOf(req));
+  }
+
+  let companyId = existing.companyId;
+  if (options?.companyId) {
+    const company = await prisma.transportCompany.findFirst({
+      where: { id: options.companyId, deletedAt: null },
+    });
+    if (!company) throw new ApiError("Operator / company not found", 400);
+    companyId = company.id;
+  }
+  if (!companyId) {
+    throw new ApiError("Assign an operator / company before accepting this registration", 422);
+  }
+
+  const updated = await prisma.$transaction(async (tx) => {
+    await tx.user.update({
+      where: { id: existing.userId },
+      data: { status: "ACTIVE" },
+    });
+    return tx.driver.update({
+      where: { id: existing.id },
+      data: {
+        companyId,
+        status: "ACTIVE",
+        registrationStatus: "APPROVED",
+        registrationNote: options?.note?.trim() || "Accepted by Super Admin after review.",
+      },
+      include: driverInclude,
+    });
+  });
+
+  await notifyUser({
+    userId: existing.userId,
+    type: "SYSTEM_ANNOUNCEMENT",
+    title: "Driver registration accepted",
+    body: "Your driver registration was accepted. You can now sign in. License verification may still be pending (manual / simulated).",
+    payload: { driverId: existing.id, registrationStatus: "APPROVED" },
+  });
+
+  return projectDriver(updated, rolesOf(req));
 }
 
 export async function updateDriver(req: Request, id: string, body: Record<string, unknown>) {

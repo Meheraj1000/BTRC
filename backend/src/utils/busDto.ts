@@ -83,9 +83,23 @@ type BusRow = {
   driverId: string | null;
   createdAt: Date;
   updatedAt: Date;
-  company?: { id?: string; name?: string } | null;
-  route?: { id?: string; name?: string; code?: string; allowedSpeed?: number } | null;
-  driver?: { id?: string; user?: { fullName?: string } | null } | null;
+  company?: { id?: string; name?: string; city?: string | null } | null;
+  route?: {
+    id?: string;
+    name?: string;
+    code?: string;
+    startName?: string;
+    endName?: string;
+    city?: string;
+    allowedSpeed?: number;
+  } | null;
+  driver?: {
+    id?: string;
+    licenseStatus?: string;
+    experienceYears?: number | null;
+    status?: string;
+    user?: { fullName?: string } | null;
+  } | null;
   latestLoc?: {
     latitude: unknown;
     longitude: unknown;
@@ -108,8 +122,20 @@ export function projectBus(bus: BusRow, roles: RoleCode[]) {
     capacity: bus.capacity,
     operationalStatus: bus.operationalStatus,
     verificationLabel: "MANUAL / SIMULATED VERIFICATION",
-    company: bus.company ? { id: bus.company.id, name: bus.company.name } : { id: bus.companyId, name: null },
-    route: bus.route ? { id: bus.route.id, name: bus.route.name, code: bus.route.code } : null,
+    company: bus.company
+      ? { id: bus.company.id, name: bus.company.name, city: bus.company.city ?? null }
+      : { id: bus.companyId, name: null, city: null },
+    route: bus.route
+      ? {
+          id: bus.route.id,
+          name: bus.route.name,
+          code: bus.route.code,
+          startName: bus.route.startName,
+          endName: bus.route.endName,
+          city: bus.route.city,
+          allowedSpeed: bus.route.allowedSpeed,
+        }
+      : null,
     createdAt: bus.createdAt,
     updatedAt: bus.updatedAt,
   };
@@ -132,8 +158,22 @@ export function projectBus(bus: BusRow, roles: RoleCode[]) {
   if (roles.includes("POLICE") && !roles.includes("SUPER_ADMIN")) {
     return {
       ...base,
+      manufacturer: bus.manufacturer,
+      model: bus.model,
+      yearOfManufacture: bus.yearOfManufacture,
       fitnessStatus: bus.fitnessStatus,
-      driver: bus.driver ? { id: bus.driver.id, name: bus.driver.user?.fullName ?? null } : null,
+      registrationStatus: bus.registrationStatus,
+      insuranceStatus: bus.insuranceStatus,
+      // Roadside lookup: who is driving, license status (no phone / license number).
+      driver: bus.driver
+        ? {
+            id: bus.driver.id,
+            name: bus.driver.user?.fullName ?? null,
+            licenseStatus: bus.driver.licenseStatus ?? null,
+            experienceYears: bus.driver.experienceYears ?? null,
+            status: bus.driver.status ?? null,
+          }
+        : null,
       latestLoc: bus.latestLoc
         ? {
             latitude: Number(bus.latestLoc.latitude),

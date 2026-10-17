@@ -27,6 +27,8 @@ type Driver = {
   licenseExpiry?: string | null;
   licenseValidity?: string;
   status?: string;
+  registrationStatus?: string | null;
+  registrationNote?: string | null;
   experienceYears?: number;
   companyId?: string | null;
   company?: { id?: string; name?: string | null } | null;
@@ -43,9 +45,17 @@ const LICENSE = ["PENDING", "VALID", "EXPIRED", "SUSPENDED"] as const;
 const STATUSES = ["ACTIVE", "INACTIVE", "SUSPENDED"] as const;
 
 function toneFor(status?: string): "green" | "yellow" | "red" | "slate" {
-  if (status === "ACTIVE" || status === "VALID" || status === "EXPIRING_SOON") return "green";
-  if (status === "PENDING") return "yellow";
-  if (status === "SUSPENDED" || status === "EXPIRED" || status === "INVALID" || status === "INACTIVE") return "red";
+  if (status === "ACTIVE" || status === "VALID" || status === "EXPIRING_SOON" || status === "APPROVED") return "green";
+  if (status === "PENDING" || status === "PENDING_REVIEW") return "yellow";
+  if (
+    status === "SUSPENDED"
+    || status === "EXPIRED"
+    || status === "INVALID"
+    || status === "INACTIVE"
+    || status === "REJECTED"
+  ) {
+    return "red";
+  }
   return "slate";
 }
 
@@ -62,6 +72,7 @@ export function DriverDesk({
   const isAdminUser = Boolean(user?.roles.includes("SUPER_ADMIN"));
   const canManage = mode === "admin" || mode === "owner";
   const canVerify = mode === "admin" || mode === "brta" || (isAdminUser && mode !== "readonly");
+  const canReviewRegistration = mode === "admin" || isAdminUser;
   const showCompany = mode === "admin" || isAdminUser;
 
   const [items, setItems] = useState<Driver[]>([]);
@@ -71,6 +82,7 @@ export function DriverDesk({
   const [licenseStatus, setLicenseStatus] = useState("");
   const [status, setStatus] = useState("");
   const [licenseValidity, setLicenseValidity] = useState("");
+  const [registrationStatus, setRegistrationStatus] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -81,6 +93,8 @@ export function DriverDesk({
   const [companies, setCompanies] = useState<Company[]>([]);
   const [buses, setBuses] = useState<BusOpt[]>([]);
   const [assignBusId, setAssignBusId] = useState("");
+  const [reviewCompanyId, setReviewCompanyId] = useState("");
+  const [reviewNote, setReviewNote] = useState("");
 
   const query = useMemo(() => {
     const p = new URLSearchParams({ page: String(page), pageSize: "20" });
@@ -88,8 +102,9 @@ export function DriverDesk({
     if (licenseStatus) p.set("licenseStatus", licenseStatus);
     if (status) p.set("status", status);
     if (licenseValidity) p.set("licenseValidity", licenseValidity);
+    if (registrationStatus) p.set("registrationStatus", registrationStatus);
     return p.toString();
-  }, [page, q, licenseStatus, status, licenseValidity]);
+  }, [page, q, licenseStatus, status, licenseValidity, registrationStatus]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -98,7 +113,11 @@ export function DriverDesk({
       const data = await api<{ items: Driver[]; total: number }>(`/drivers?${query}`);
       setItems(data.items ?? []);
       setTotal(data.total ?? 0);
-      setSelected((cur) => (cur ? data.items.find((d) => d.id === cur.id) ?? cur : null));
+      setSelected((cur) => {
+        const next = cur ? data.items.find((d) => d.id === cur.id) ?? cur : null;
+        if (next) setReviewCompanyId(next.companyId ?? next.company?.id ?? "");
+        return next;
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to load drivers");
     } finally {
@@ -217,12 +236,50 @@ export function DriverDesk({
     }
   }
 
+  async function reviewRegistration(id: string, decision: "APPROVE" | "REJECT") {
+    if (decision === "APPROVE" && !reviewCompanyId) {
+      setError("Select an operator / company before accepting this registration.");
+      return;
+    }
+    if (
+      decision === "REJECT"
+      && !window.confirm("Reject this driver registration? They will not be able to sign in.")
+    ) {
+      return;
+    }
+    setBusy(true);
+    setError("");
+    setNotice("");
+    try {
+      await api(`/drivers/${id}/registration-review`, {
+        method: "POST",
+        body: JSON.stringify({
+          decision,
+          companyId: reviewCompanyId || null,
+          note: reviewNote.trim() || null,
+        }),
+      });
+      setNotice(
+        decision === "APPROVE"
+          ? "Driver registration accepted. They can now sign in."
+          : "Driver registration rejected.",
+      );
+      setReviewNote("");
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Review failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   const pages = Math.max(1, Math.ceil(total / 20));
 
   return (
     <AppShell allow={allow} title={title}>
       <div className="brand-banner mb-4 rounded-xl px-4 py-3 text-sm">
         Driver license verification is <strong>MANUAL / SIMULATED</strong>. There is no live BRTA or government API in this demo.
+        Self-registered drivers appear as <strong>PENDING_REVIEW</strong> until a Super Admin accepts them.
         {user?.company?.name ? ` Operator scope: ${user.company.name}.` : null}
       </div>
 
@@ -244,10 +301,27 @@ export function DriverDesk({
           <option value="PENDING">Pending</option>
           <option value="INVALID">Suspended license</option>
         </select>
+        {canReviewRegistration && (
+          <select className="input" value={registrationStatus} onChange={(e) => { setPage(1); setRegistrationStatus(e.target.value); }}>
+            <option value="">All registrations</option>
+            <option value="PENDING_REVIEW">Pending review</option>
+            <option value="APPROVED">Approved</option>
+            <option value="REJECTED">Rejected</option>
+          </select>
+        )}
         <div className="filter-bar-actions">
           {canManage && (
             <button className="btn btn-primary w-full sm:w-auto" type="button" onClick={() => { setEditing(null); setFormOpen(true); }}>
               Register driver
+            </button>
+          )}
+          {canReviewRegistration && (
+            <button
+              className="btn btn-ghost w-full sm:w-auto"
+              type="button"
+              onClick={() => { setPage(1); setRegistrationStatus("PENDING_REVIEW"); }}
+            >
+              Pending reviews
             </button>
           )}
           <span className="text-xs text-slate-500">{total} drivers</span>
@@ -313,16 +387,26 @@ export function DriverDesk({
                   <th>Name</th>
                   <th>License</th>
                   <th>Validity</th>
+                  <th>Registration</th>
                   <th>Status</th>
                   <th>Vehicle</th>
                 </tr>
               </thead>
               <tbody>
                 {items.map((row) => (
-                  <tr key={row.id} className={selected?.id === row.id ? "bg-[var(--surface-secondary)]" : "cursor-pointer"} onClick={() => setSelected(row)}>
+                  <tr
+                    key={row.id}
+                    className={selected?.id === row.id ? "bg-[var(--surface-secondary)]" : "cursor-pointer"}
+                    onClick={() => {
+                      setSelected(row);
+                      setReviewCompanyId(row.companyId ?? row.company?.id ?? "");
+                      setReviewNote("");
+                    }}
+                  >
                     <td className="font-medium">{row.fullName ?? "—"}</td>
                     <td>{row.licenseNumber}</td>
                     <td><Badge tone={toneFor(row.licenseValidity)}>{row.licenseValidity ?? row.licenseStatus ?? "—"}</Badge></td>
+                    <td><Badge tone={toneFor(row.registrationStatus ?? "APPROVED")}>{row.registrationStatus ?? "APPROVED"}</Badge></td>
                     <td><Badge tone={toneFor(row.status)}>{row.status ?? "—"}</Badge></td>
                     <td>{row.buses?.[0]?.registrationNo ?? "—"}</td>
                   </tr>
@@ -353,9 +437,15 @@ export function DriverDesk({
                 <div>Experience: {selected.experienceYears ?? 0} years</div>
                 <div className="flex flex-wrap gap-1">
                   <Badge tone={toneFor(selected.status)}>{selected.status}</Badge>
+                  <Badge tone={toneFor(selected.registrationStatus ?? "APPROVED")}>
+                    Reg {selected.registrationStatus ?? "APPROVED"}
+                  </Badge>
                   <Badge tone={toneFor(selected.licenseStatus)}>License {selected.licenseStatus}</Badge>
                   <Badge tone={toneFor(selected.licenseValidity)}>{selected.licenseValidity}</Badge>
                 </div>
+                {selected.registrationNote && (
+                  <p className="text-xs text-[var(--text-muted)]">Note: {selected.registrationNote}</p>
+                )}
                 <div className="text-xs">{selected.dutyEligible ? "Eligible for active assignment." : "Not eligible for active assignment."}</div>
                 <div>Current vehicle: {selected.buses?.map((b) => b.registrationNo).join(", ") || "Unassigned"}</div>
                 {!!selected.assignments?.length && (
@@ -366,6 +456,57 @@ export function DriverDesk({
                         <li key={a.id}>{a.registrationNo ?? a.busId} — {new Date(a.assignedAt).toLocaleDateString()}{a.endedAt ? " (ended)" : ""}</li>
                       ))}
                     </ul>
+                  </div>
+                )}
+
+                {canReviewRegistration && selected.registrationStatus === "PENDING_REVIEW" && (
+                  <div className="space-y-2 rounded-xl border border-[var(--border)] bg-[var(--surface-secondary)] p-3">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      Super Admin registration review
+                    </div>
+                    <p className="text-xs text-[var(--text-muted)]">
+                      Accept only if the submitted name, license, phone, and operator details are correct.
+                    </p>
+                    <label className="block text-sm">
+                      Operator (required to accept)
+                      <select
+                        className="input mt-1"
+                        value={reviewCompanyId}
+                        onChange={(e) => setReviewCompanyId(e.target.value)}
+                      >
+                        <option value="">Select operator</option>
+                        {companies.map((c) => (
+                          <option key={c.id} value={c.id}>{c.name}</option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="block text-sm">
+                      Review note (optional)
+                      <textarea
+                        className="input mt-1 min-h-20"
+                        value={reviewNote}
+                        onChange={(e) => setReviewNote(e.target.value)}
+                        placeholder="Reason for accept / reject"
+                      />
+                    </label>
+                    <div className="flex flex-col gap-2 sm:flex-row">
+                      <button
+                        className="btn btn-primary"
+                        type="button"
+                        disabled={busy}
+                        onClick={() => void reviewRegistration(selected.id, "APPROVE")}
+                      >
+                        Accept registration
+                      </button>
+                      <button
+                        className="btn btn-danger"
+                        type="button"
+                        disabled={busy}
+                        onClick={() => void reviewRegistration(selected.id, "REJECT")}
+                      >
+                        Reject
+                      </button>
+                    </div>
                   </div>
                 )}
 

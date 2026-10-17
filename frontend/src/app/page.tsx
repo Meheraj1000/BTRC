@@ -42,6 +42,12 @@ export default function HomePage() {
             >
               Passenger register
             </Link>
+            <Link
+              href="/register/driver"
+              className="btn w-full border border-white/25 bg-transparent px-6 py-3 text-base text-white hover:bg-white/10 sm:w-auto"
+            >
+              Driver register
+            </Link>
           </div>
         </div>
       </section>

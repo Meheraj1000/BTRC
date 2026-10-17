@@ -15,6 +15,17 @@ const registerSchema = z.object({
   phone: z.string().min(8).max(20).optional(),
 });
 
+const registerDriverSchema = z.object({
+  email: z.string().email(),
+  password: passwordSchema,
+  fullName: z.string().min(2).max(120),
+  phone: z.string().min(11).max(20),
+  licenseNumber: z.string().min(4).max(32),
+  licenseExpiry: z.string().optional().nullable(),
+  experienceYears: z.coerce.number().int().min(0).max(60).optional(),
+  companyId: z.string().uuid().optional().nullable(),
+});
+
 const loginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(1),
@@ -24,6 +35,15 @@ router.post("/register", validate(registerSchema), async (req, res, next) => {
   try {
     const data = await auth.registerPassenger(req.body);
     return ok(res, data, "Account created", 201);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post("/register-driver", validate(registerDriverSchema), async (req, res, next) => {
+  try {
+    const data = await auth.registerDriver(req.body);
+    return ok(res, data, "Driver registration submitted for Super Admin review", 201);
   } catch (err) {
     next(err);
   }

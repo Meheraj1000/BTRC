@@ -5,6 +5,8 @@ import { ApiError } from "../lib/apiResponse.js";
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from "../lib/jwt.js";
 import { logger } from "../config/logger.js";
 import type { RoleCode } from "@prisma/client";
+import { assertLicenseNumber, isBdMobile } from "../utils/driverDto.js";
+import { notifyRoles } from "./notification.service.js";
 
 const SALT = 12;
 
@@ -59,12 +61,107 @@ export async function registerPassenger(input: {
   return issueTokens(user);
 }
 
+export async function registerDriver(input: {
+  email: string;
+  password: string;
+  fullName: string;
+  phone: string;
+  licenseNumber: string;
+  licenseExpiry?: string | null;
+  experienceYears?: number;
+  companyId?: string | null;
+}) {
+  const email = input.email.toLowerCase().trim();
+  const exists = await prisma.user.findUnique({ where: { email } });
+  if (exists) throw new ApiError("An account with this email already exists", 409);
+
+  let licenseNumber: string;
+  try {
+    licenseNumber = assertLicenseNumber(input.licenseNumber);
+  } catch {
+    throw new ApiError("Invalid driving license number", 422);
+  }
+  const licenseTaken = await prisma.driver.findFirst({
+    where: { licenseNumber, deletedAt: null },
+    select: { id: true },
+  });
+  if (licenseTaken) throw new ApiError("A driver with this license number is already registered", 409);
+
+  const phone = input.phone.trim();
+  if (!isBdMobile(phone)) throw new ApiError("Invalid Bangladesh mobile number (use 01XXXXXXXXX)", 422);
+  const phoneTaken = await prisma.user.findFirst({ where: { phone, deletedAt: null }, select: { id: true } });
+  if (phoneTaken) throw new ApiError("An account with this phone number already exists", 409);
+
+  let companyId: string | null = null;
+  if (input.companyId) {
+    const company = await prisma.transportCompany.findFirst({
+      where: { id: input.companyId, deletedAt: null },
+      select: { id: true, name: true },
+    });
+    if (!company) throw new ApiError("Selected operator / company was not found", 400);
+    companyId = company.id;
+  }
+
+  const licenseExpiry = input.licenseExpiry ? new Date(input.licenseExpiry) : null;
+  if (licenseExpiry && Number.isNaN(licenseExpiry.getTime())) {
+    throw new ApiError("Invalid license expiry date", 422);
+  }
+
+  const driverRole = await prisma.role.findUnique({ where: { code: "DRIVER" } });
+  if (!driverRole) throw new ApiError("Driver role is not configured", 500);
+
+  const user = await prisma.user.create({
+    data: {
+      email,
+      phone,
+      fullName: input.fullName.trim(),
+      passwordHash: await bcrypt.hash(input.password, SALT),
+      status: "INACTIVE",
+      userRoles: { create: { roleId: driverRole.id } },
+      driver: {
+        create: {
+          companyId,
+          licenseNumber,
+          licenseExpiry,
+          experienceYears: input.experienceYears ?? 0,
+          licenseStatus: "PENDING",
+          status: "INACTIVE",
+          registrationStatus: "PENDING_REVIEW",
+        },
+      },
+    },
+    include: {
+      ...userInclude,
+      driver: { select: { id: true, licenseNumber: true, registrationStatus: true } },
+    },
+  });
+
+  await notifyRoles(["SUPER_ADMIN"], {
+    type: "SYSTEM_ANNOUNCEMENT",
+    title: "Driver registration pending review",
+    body: `${user.fullName} (${user.email}) submitted a driver registration for license ${licenseNumber}. Review and accept if the details are correct.`,
+    payload: { driverId: user.driver?.id, userId: user.id, licenseNumber },
+  });
+
+  logger.info("auth_register_driver", { userId: user.id, email: user.email, driverId: user.driver?.id });
+  return {
+    id: user.id,
+    email: user.email,
+    fullName: user.fullName,
+    registrationStatus: "PENDING_REVIEW" as const,
+    message: "Registration submitted. A Super Admin must review and accept your application before you can sign in.",
+  };
+}
+
 export async function login(email: string, password: string) {
   const user = await prisma.user.findUnique({
     where: { email: email.toLowerCase() },
-    include: userInclude,
+    include: {
+      ...userInclude,
+      driver: { select: { registrationStatus: true } },
+    },
   });
-  if (!user || user.deletedAt || user.status !== "ACTIVE") {
+  if (!user || user.deletedAt) {
     logger.info("auth_login_failed");
     throw new ApiError("Invalid email or password", 401);
   }
@@ -73,6 +170,22 @@ export async function login(email: string, password: string) {
   if (!match) {
     logger.info("auth_login_failed");
     throw new ApiError("Invalid email or password", 401);
+  }
+
+  if (user.status !== "ACTIVE") {
+    if (user.driver?.registrationStatus === "PENDING_REVIEW") {
+      throw new ApiError(
+        "Your driver registration is awaiting Super Admin review. You cannot sign in until it is accepted.",
+        403,
+      );
+    }
+    if (user.driver?.registrationStatus === "REJECTED") {
+      throw new ApiError(
+        "Your driver registration was rejected. Contact the Super Admin or submit a new application with correct details.",
+        403,
+      );
+    }
+    throw new ApiError("This account is not active", 403);
   }
 
   await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });

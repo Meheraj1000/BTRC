@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
 import { getSocket } from "@/lib/socket";
@@ -16,7 +17,7 @@ type VehicleRow = {
   trackingState?: string;
   complianceStatus?: string | null;
   company?: { name?: string | null } | null;
-  route?: { name?: string; code?: string } | null;
+  route?: { name?: string; code?: string; startName?: string } | null;
   driver?: { name?: string | null } | null;
   latestLoc?: { timestamp?: string; speed?: number } | null;
 };
@@ -142,7 +143,12 @@ export function PoliceMonitoring() {
 
       <section className="card p-4">
         <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
-          <h3 className="font-display text-base font-semibold tracking-tight">Vehicle search</h3>
+          <div>
+            <h3 className="font-display text-base font-semibold tracking-tight">Vehicle search</h3>
+            <p className="mt-0.5 text-xs text-[var(--text-muted)]">
+              Click a registration for driver, vehicle details, and point of origin.
+            </p>
+          </div>
           <div className="toolbar w-full sm:w-auto">
             <input className="input" aria-label="Search registration" placeholder="Registration" value={q} onChange={(e) => setQ(e.target.value)} />
             <select className="input" aria-label="Filter GPS status" value={gpsFilter} onChange={(e) => setGpsFilter(e.target.value)}>
@@ -158,6 +164,9 @@ export function PoliceMonitoring() {
               <option value="OFF_ROUTE">OFF_ROUTE</option>
               <option value="STALE">STALE</option>
             </select>
+            <Link className="btn btn-primary" href={q.trim() ? `/police/buses?q=${encodeURIComponent(q.trim())}` : "/police/buses"}>
+              Full vehicle lookup
+            </Link>
           </div>
         </div>
         {!vehicles.length ? <EmptyState title="No vehicles" body="No vehicles match the current operational filters." /> : (
@@ -168,6 +177,7 @@ export function PoliceMonitoring() {
                   <th>Registration</th>
                   <th>Operator</th>
                   <th>Driver</th>
+                  <th>Origin</th>
                   <th>Route</th>
                   <th>GPS</th>
                   <th>Compliance</th>
@@ -178,9 +188,17 @@ export function PoliceMonitoring() {
               <tbody>
                 {vehicles.map((v) => (
                   <tr key={v.id}>
-                    <td>{v.registrationNo}</td>
+                    <td>
+                      <Link
+                        className="font-medium text-brand-700 underline"
+                        href={`/police/buses?q=${encodeURIComponent(v.registrationNo)}`}
+                      >
+                        {v.registrationNo}
+                      </Link>
+                    </td>
                     <td>{v.company?.name ?? "—"}</td>
                     <td>{v.driver?.name ?? "—"}</td>
+                    <td>{v.route?.startName ?? "—"}</td>
                     <td>{v.route?.code ?? v.route?.name ?? "—"}</td>
                     <td><Badge tone={tone(v.trackingState)}>{v.trackingState ?? "—"}</Badge></td>
                     <td><Badge tone={tone(v.complianceStatus)}>{v.complianceStatus ?? "—"}</Badge></td>

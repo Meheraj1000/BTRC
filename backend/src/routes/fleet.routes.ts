@@ -29,6 +29,7 @@ import {
   assignDriver,
   changeDriverStatus,
   createDriver,
+  reviewDriverRegistration,
   getDriver,
   listDrivers,
   updateDriver,
@@ -237,6 +238,7 @@ const driverListQuery = z.object({
   status: z.nativeEnum(UserStatus).optional(),
   companyId: z.string().uuid().optional(),
   licenseValidity: z.enum(["VALID", "EXPIRED", "EXPIRING_SOON", "PENDING", "INVALID"]).optional(),
+  registrationStatus: z.enum(["PENDING_REVIEW", "APPROVED", "REJECTED"]).optional(),
 });
 
 const driverCreateSchema = z.object({
@@ -317,6 +319,35 @@ router.patch("/drivers/:id/verification", requirePermission("drivers.verify"), v
     next(err);
   }
 });
+
+router.post(
+  "/drivers/:id/registration-review",
+  requirePermission("drivers.manage"),
+  validate(
+    z.object({
+      decision: z.enum(["APPROVE", "REJECT"]),
+      companyId: z.string().uuid().optional().nullable(),
+      note: z.string().max(500).optional().nullable(),
+    }),
+  ),
+  auditAction("driver.registration_review", "Driver"),
+  async (req, res, next) => {
+    try {
+      const driver = await reviewDriverRegistration(req, param(req, "id"), req.body.decision, {
+        companyId: req.body.companyId,
+        note: req.body.note,
+      });
+      res.locals.entityId = driver.id;
+      return ok(
+        res,
+        driver,
+        req.body.decision === "APPROVE" ? "Driver registration accepted" : "Driver registration rejected",
+      );
+    } catch (err) {
+      next(err);
+    }
+  },
+);
 
 router.patch("/drivers/:id/assignment", requirePermission("drivers.manage"), validate(z.object({
   busId: z.string().uuid().nullable(),

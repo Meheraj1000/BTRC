@@ -34,6 +34,12 @@ enum LicenseStatus {
   PENDING
 }
 
+enum DriverRegistrationStatus {
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+}
+
 enum FitnessStatus {
   FIT
   UNFIT
@@ -345,20 +351,22 @@ model PassengerFavorite {
 }
 
 model Driver {
-  id              String        @id @default(uuid())
-  userId          String        @unique
-  companyId       String?
-  licenseNumber   String        @unique
-  licenseStatus   LicenseStatus @default(PENDING)
-  licenseExpiry   DateTime?
-  experienceYears Int           @default(0)
-  nidReference    String?
-  violationCount  Int           @default(0)
-  performanceScore Decimal      @default(80) @db.Decimal(5, 2)
-  status          UserStatus    @default(ACTIVE)
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  deletedAt       DateTime?
+  id                 String                   @id @default(uuid())
+  userId             String                   @unique
+  companyId          String?
+  licenseNumber      String                   @unique
+  licenseStatus      LicenseStatus            @default(PENDING)
+  licenseExpiry      DateTime?
+  experienceYears    Int                      @default(0)
+  nidReference       String?
+  violationCount     Int                      @default(0)
+  performanceScore   Decimal                  @default(80) @db.Decimal(5, 2)
+  status             UserStatus               @default(ACTIVE)
+  registrationStatus DriverRegistrationStatus @default(APPROVED)
+  registrationNote   String?
+  createdAt          DateTime                 @default(now())
+  updatedAt          DateTime                 @updatedAt
+  deletedAt          DateTime?
 
   user         User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   company      TransportCompany?  @relation(fields: [companyId], references: [id])
@@ -376,6 +384,7 @@ model Driver {
   @@index([companyId])
   @@index([licenseStatus])
   @@index([status])
+  @@index([registrationStatus])
   @@map("drivers")
 }
 
