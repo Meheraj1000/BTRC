@@ -5,6 +5,7 @@ import { AppShell } from "@/components/AppShell";
 import { Badge, EmptyState, ErrorState } from "@/components/StatCard";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { useI18n } from "@/lib/i18n";
 import type { RoleCode } from "@/lib/types";
 
 type Mode = "admin" | "owner" | "brta" | "readonly";
@@ -68,6 +69,7 @@ export function DriverDesk({
   title: string;
   mode: Mode;
 }) {
+  const { t } = useI18n();
   const { user } = useAuth();
   const isAdminUser = Boolean(user?.roles.includes("SUPER_ADMIN"));
   const canManage = mode === "admin" || mode === "owner";
@@ -221,7 +223,7 @@ export function DriverDesk({
   }
 
   async function archive(id: string) {
-    if (!window.confirm("Archive this driver? Trips and GPS history are kept. Hard delete is not available.")) return;
+    if (!window.confirm(t("Archive this driver? Trips and GPS history are kept. Hard delete is not available."))) return;
     setBusy(true);
     setError("");
     try {
@@ -243,7 +245,7 @@ export function DriverDesk({
     }
     if (
       decision === "REJECT"
-      && !window.confirm("Reject this driver registration? They will not be able to sign in.")
+      && !window.confirm(t("Reject this driver registration? They will not be able to sign in."))
     ) {
       return;
     }
@@ -278,41 +280,43 @@ export function DriverDesk({
   return (
     <AppShell allow={allow} title={title}>
       <div className="brand-banner mb-4 rounded-xl px-4 py-3 text-sm">
-        Driver license verification is <strong>MANUAL / SIMULATED</strong>. There is no live BRTA or government API in this demo.
-        Self-registered drivers appear as <strong>PENDING_REVIEW</strong> until a Super Admin accepts them.
-        {user?.company?.name ? ` Operator scope: ${user.company.name}.` : null}
+        {t("Driver license verification is")}{" "}
+        <strong>{t("MANUAL / SIMULATED")}</strong>. {t("There is no live BRTA or government API in this demo.")}{" "}
+        {t("Self-registered drivers appear as")}{" "}
+        <strong>{t("PENDING_REVIEW")}</strong> {t("until a Super Admin accepts them.")}
+        {user?.company?.name ? ` ${t("Operator scope:")} ${user.company.name}.` : null}
       </div>
 
       <div className="card filter-bar mb-4">
-        <input className="input sm:col-span-2" placeholder="Search name, phone, or license" value={q} onChange={(e) => { setPage(1); setQ(e.target.value); }} />
+        <input className="input sm:col-span-2" placeholder={t("Search name, phone, or license")} value={q} onChange={(e) => { setPage(1); setQ(e.target.value); }} />
         <select className="input" value={status} onChange={(e) => { setPage(1); setStatus(e.target.value); }}>
-          <option value="">All statuses</option>
-          {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+          <option value="">{t("All statuses")}</option>
+          {STATUSES.map((s) => <option key={s} value={s}>{t(s)}</option>)}
         </select>
         <select className="input" value={licenseStatus} onChange={(e) => { setPage(1); setLicenseStatus(e.target.value); }}>
-          <option value="">All license states</option>
-          {LICENSE.map((s) => <option key={s} value={s}>{s}</option>)}
+          <option value="">{t("All license states")}</option>
+          {LICENSE.map((s) => <option key={s} value={s}>{t(s)}</option>)}
         </select>
         <select className="input" value={licenseValidity} onChange={(e) => { setPage(1); setLicenseValidity(e.target.value); }}>
-          <option value="">All validity</option>
-          <option value="VALID">Valid</option>
-          <option value="EXPIRING_SOON">Expiring soon</option>
-          <option value="EXPIRED">Expired</option>
-          <option value="PENDING">Pending</option>
-          <option value="INVALID">Suspended license</option>
+          <option value="">{t("All validity")}</option>
+          <option value="VALID">{t("Valid")}</option>
+          <option value="EXPIRING_SOON">{t("Expiring soon")}</option>
+          <option value="EXPIRED">{t("Expired")}</option>
+          <option value="PENDING">{t("Pending")}</option>
+          <option value="INVALID">{t("Suspended license")}</option>
         </select>
         {canReviewRegistration && (
           <select className="input" value={registrationStatus} onChange={(e) => { setPage(1); setRegistrationStatus(e.target.value); }}>
-            <option value="">All registrations</option>
-            <option value="PENDING_REVIEW">Pending review</option>
-            <option value="APPROVED">Approved</option>
-            <option value="REJECTED">Rejected</option>
+            <option value="">{t("All registrations")}</option>
+            <option value="PENDING_REVIEW">{t("Pending review")}</option>
+            <option value="APPROVED">{t("Approved")}</option>
+            <option value="REJECTED">{t("Rejected")}</option>
           </select>
         )}
         <div className="filter-bar-actions">
           {canManage && (
             <button className="btn btn-primary w-full sm:w-auto" type="button" onClick={() => { setEditing(null); setFormOpen(true); }}>
-              Register driver
+              {t("Register driver")}
             </button>
           )}
           {canReviewRegistration && (
@@ -321,75 +325,75 @@ export function DriverDesk({
               type="button"
               onClick={() => { setPage(1); setRegistrationStatus("PENDING_REVIEW"); }}
             >
-              Pending reviews
+              {t("Pending reviews")}
             </button>
           )}
-          <span className="text-xs text-slate-500">{total} drivers</span>
+          <span className="text-xs text-slate-500">{total} {t("drivers")}</span>
         </div>
       </div>
 
-      {notice && <div className="mb-3 rounded-xl border px-4 py-2 text-sm" style={{ borderColor: "var(--success)", background: "var(--success-bg)", color: "var(--success)" }}>{notice}</div>}
-      {error && <div className="mb-3"><ErrorState message={error} /></div>}
+      {notice && <div className="mb-3 rounded-xl border px-4 py-2 text-sm" style={{ borderColor: "var(--success)", background: "var(--success-bg)", color: "var(--success)" }}>{t(notice)}</div>}
+      {error && <div className="mb-3"><ErrorState message={t(error)} /></div>}
 
       {formOpen && canManage && (
         <form key={editing?.id ?? "new"} className="card mb-4 grid gap-3 p-4 md:grid-cols-2" onSubmit={submitForm}>
-          <h2 className="md:col-span-2 text-base font-semibold">{editing ? "Edit driver" : "Register driver"}</h2>
-          <label className="text-sm">Full name
+          <h2 className="md:col-span-2 text-base font-semibold">{editing ? t("Edit driver") : t("Register driver")}</h2>
+          <label className="text-sm">{t("Full name")}
             <input className="input mt-1" name="fullName" defaultValue={editing?.fullName ?? ""} required />
           </label>
           {!editing && (
             <>
-              <label className="text-sm">Email
+              <label className="text-sm">{t("Email")}
                 <input className="input mt-1" name="email" type="email" required />
               </label>
-              <label className="text-sm">Password
+              <label className="text-sm">{t("Password")}
                 <input className="input mt-1" name="password" type="password" minLength={8} required />
               </label>
             </>
           )}
-          <label className="text-sm">Phone (01XXXXXXXXX)
+          <label className="text-sm">{t("Phone (01XXXXXXXXX)")}
             <input className="input mt-1" name="phone" defaultValue={editing?.phone ?? ""} />
           </label>
-          <label className="text-sm">License number
+          <label className="text-sm">{t("License number")}
             <input className="input mt-1" name="licenseNumber" defaultValue={editing?.licenseNumber} required />
           </label>
-          <label className="text-sm">License expiry
+          <label className="text-sm">{t("License expiry")}
             <input className="input mt-1" name="licenseExpiry" type="date" defaultValue={editing?.licenseExpiry ? editing.licenseExpiry.slice(0, 10) : ""} />
           </label>
-          <label className="text-sm">Experience (years)
+          <label className="text-sm">{t("Experience (years)")}
             <input className="input mt-1" name="experienceYears" type="number" min={0} max={60} defaultValue={editing?.experienceYears ?? 0} />
           </label>
           {showCompany && (
-            <label className="text-sm">Operator
+            <label className="text-sm">{t("Operator")}
               <select className="input mt-1" name="companyId" defaultValue={editing?.companyId ?? editing?.company?.id ?? ""} required={!editing}>
-                <option value="">Select operator</option>
+                <option value="">{t("Select operator")}</option>
                 {companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
             </label>
           )}
           <div className="flex flex-col gap-2 sm:flex-row md:col-span-2">
-            <button className="btn btn-primary w-full sm:w-auto" disabled={busy} type="submit">{busy ? "Saving…" : "Save"}</button>
-            <button className="btn btn-ghost w-full sm:w-auto" type="button" onClick={() => { setFormOpen(false); setEditing(null); }}>Cancel</button>
+            <button className="btn btn-primary w-full sm:w-auto" disabled={busy} type="submit">{busy ? t("Saving…") : t("Save")}</button>
+            <button className="btn btn-ghost w-full sm:w-auto" type="button" onClick={() => { setFormOpen(false); setEditing(null); }}>{t("Cancel")}</button>
           </div>
         </form>
       )}
 
       {loading ? (
-        <div className="text-sm text-slate-500">Loading drivers…</div>
+        <div className="text-sm text-slate-500">{t("Loading drivers…")}</div>
       ) : !items.length ? (
-        <EmptyState title="No drivers" body="No drivers match the current filters." />
+        <EmptyState title={t("No drivers")} body={t("No drivers match the current filters.")} />
       ) : (
         <div className="stack-panel">
           <div className="card table-wrap min-w-0">
             <table className="data">
               <thead>
                 <tr>
-                  <th>Name</th>
-                  <th>License</th>
-                  <th>Validity</th>
-                  <th>Registration</th>
-                  <th>Status</th>
-                  <th>Vehicle</th>
+                  <th>{t("Name")}</th>
+                  <th>{t("License")}</th>
+                  <th>{t("Validity")}</th>
+                  <th>{t("Registration")}</th>
+                  <th>{t("Status")}</th>
+                  <th>{t("Vehicle")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -405,55 +409,55 @@ export function DriverDesk({
                   >
                     <td className="font-medium">{row.fullName ?? "—"}</td>
                     <td>{row.licenseNumber}</td>
-                    <td><Badge tone={toneFor(row.licenseValidity)}>{row.licenseValidity ?? row.licenseStatus ?? "—"}</Badge></td>
-                    <td><Badge tone={toneFor(row.registrationStatus ?? "APPROVED")}>{row.registrationStatus ?? "APPROVED"}</Badge></td>
-                    <td><Badge tone={toneFor(row.status)}>{row.status ?? "—"}</Badge></td>
+                    <td><Badge tone={toneFor(row.licenseValidity)}>{row.licenseValidity ? t(row.licenseValidity) : row.licenseStatus ? t(row.licenseStatus) : "—"}</Badge></td>
+                    <td><Badge tone={toneFor(row.registrationStatus ?? "APPROVED")}>{t(row.registrationStatus ?? "APPROVED")}</Badge></td>
+                    <td><Badge tone={toneFor(row.status)}>{row.status ? t(row.status) : "—"}</Badge></td>
                     <td>{row.buses?.[0]?.registrationNo ?? "—"}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
             <div className="pager px-3 py-2">
-              <span>Page {page} of {pages}</span>
+              <span>{t("Page")} {page} {t("of")} {pages}</span>
               <div className="pager-actions">
-                <button className="btn btn-ghost" type="button" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>Previous</button>
-                <button className="btn btn-ghost" type="button" disabled={page >= pages} onClick={() => setPage((p) => p + 1)}>Next</button>
+                <button className="btn btn-ghost" type="button" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>{t("Previous")}</button>
+                <button className="btn btn-ghost" type="button" disabled={page >= pages} onClick={() => setPage((p) => p + 1)}>{t("Next")}</button>
               </div>
             </div>
           </div>
 
           <aside className="card p-4">
             {!selected ? (
-              <p className="text-sm text-slate-500">Select a driver to view details.</p>
+              <p className="text-sm text-slate-500">{t("Select a driver to view details.")}</p>
             ) : (
               <div className="space-y-3 text-sm">
                 <h2 className="text-base font-semibold">{selected.fullName ?? selected.licenseNumber}</h2>
-                <p className="text-xs text-slate-500">{selected.verificationLabel ?? "MANUAL / SIMULATED VERIFICATION"}</p>
-                <div>License: {selected.licenseNumber}</div>
-                <div>Expiry: {selected.licenseExpiry ? selected.licenseExpiry.slice(0, 10) : "—"}</div>
-                {selected.phone && <div>Phone: {selected.phone}</div>}
-                {selected.email && <div>Email: {selected.email}</div>}
-                <div>Operator: {selected.company?.name ?? "—"}</div>
-                <div>Experience: {selected.experienceYears ?? 0} years</div>
+                <p className="text-xs text-slate-500">{selected.verificationLabel ? t(selected.verificationLabel) : t("MANUAL / SIMULATED VERIFICATION")}</p>
+                <div>{t("License:")} {selected.licenseNumber}</div>
+                <div>{t("Expiry:")} {selected.licenseExpiry ? selected.licenseExpiry.slice(0, 10) : "—"}</div>
+                {selected.phone && <div>{t("Phone:")} {selected.phone}</div>}
+                {selected.email && <div>{t("Email:")} {selected.email}</div>}
+                <div>{t("Operator:")} {selected.company?.name ?? "—"}</div>
+                <div>{t("Experience:")} {selected.experienceYears ?? 0} {t("years")}</div>
                 <div className="flex flex-wrap gap-1">
-                  <Badge tone={toneFor(selected.status)}>{selected.status}</Badge>
+                  <Badge tone={toneFor(selected.status)}>{selected.status ? t(selected.status) : ""}</Badge>
                   <Badge tone={toneFor(selected.registrationStatus ?? "APPROVED")}>
-                    Reg {selected.registrationStatus ?? "APPROVED"}
+                    {t("Reg")} {t(selected.registrationStatus ?? "APPROVED")}
                   </Badge>
-                  <Badge tone={toneFor(selected.licenseStatus)}>License {selected.licenseStatus}</Badge>
-                  <Badge tone={toneFor(selected.licenseValidity)}>{selected.licenseValidity}</Badge>
+                  <Badge tone={toneFor(selected.licenseStatus)}>{t("License")} {selected.licenseStatus ? t(selected.licenseStatus) : ""}</Badge>
+                  <Badge tone={toneFor(selected.licenseValidity)}>{selected.licenseValidity ? t(selected.licenseValidity) : ""}</Badge>
                 </div>
                 {selected.registrationNote && (
-                  <p className="text-xs text-[var(--text-muted)]">Note: {selected.registrationNote}</p>
+                  <p className="text-xs text-[var(--text-muted)]">{t("Note:")} {selected.registrationNote}</p>
                 )}
-                <div className="text-xs">{selected.dutyEligible ? "Eligible for active assignment." : "Not eligible for active assignment."}</div>
-                <div>Current vehicle: {selected.buses?.map((b) => b.registrationNo).join(", ") || "Unassigned"}</div>
+                <div className="text-xs">{selected.dutyEligible ? t("Eligible for active assignment.") : t("Not eligible for active assignment.")}</div>
+                <div>{t("Current vehicle:")} {selected.buses?.map((b) => b.registrationNo).join(", ") || t("Unassigned")}</div>
                 {!!selected.assignments?.length && (
                   <div>
-                    <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Assignment history</div>
+                    <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t("Assignment history")}</div>
                     <ul className="mt-1 space-y-1 text-xs text-slate-600">
                       {selected.assignments.slice(0, 8).map((a) => (
-                        <li key={a.id}>{a.registrationNo ?? a.busId} — {new Date(a.assignedAt).toLocaleDateString()}{a.endedAt ? " (ended)" : ""}</li>
+                        <li key={a.id}>{a.registrationNo ?? a.busId} — {new Date(a.assignedAt).toLocaleDateString()}{a.endedAt ? ` ${t("(ended)")}` : ""}</li>
                       ))}
                     </ul>
                   </div>
@@ -462,31 +466,31 @@ export function DriverDesk({
                 {canReviewRegistration && selected.registrationStatus === "PENDING_REVIEW" && (
                   <div className="space-y-2 rounded-xl border border-[var(--border)] bg-[var(--surface-secondary)] p-3">
                     <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                      Super Admin registration review
+                      {t("Super Admin registration review")}
                     </div>
                     <p className="text-xs text-[var(--text-muted)]">
-                      Accept only if the submitted name, license, phone, and operator details are correct.
+                      {t("Accept only if the submitted name, license, phone, and operator details are correct.")}
                     </p>
                     <label className="block text-sm">
-                      Operator (required to accept)
+                      {t("Operator (required to accept)")}
                       <select
                         className="input mt-1"
                         value={reviewCompanyId}
                         onChange={(e) => setReviewCompanyId(e.target.value)}
                       >
-                        <option value="">Select operator</option>
+                        <option value="">{t("Select operator")}</option>
                         {companies.map((c) => (
                           <option key={c.id} value={c.id}>{c.name}</option>
                         ))}
                       </select>
                     </label>
                     <label className="block text-sm">
-                      Review note (optional)
+                      {t("Review note (optional)")}
                       <textarea
                         className="input mt-1 min-h-20"
                         value={reviewNote}
                         onChange={(e) => setReviewNote(e.target.value)}
-                        placeholder="Reason for accept / reject"
+                        placeholder={t("Reason for accept / reject")}
                       />
                     </label>
                     <div className="flex flex-col gap-2 sm:flex-row">
@@ -496,7 +500,7 @@ export function DriverDesk({
                         disabled={busy}
                         onClick={() => void reviewRegistration(selected.id, "APPROVE")}
                       >
-                        Accept registration
+                        {t("Accept registration")}
                       </button>
                       <button
                         className="btn btn-danger"
@@ -504,7 +508,7 @@ export function DriverDesk({
                         disabled={busy}
                         onClick={() => void reviewRegistration(selected.id, "REJECT")}
                       >
-                        Reject
+                        {t("Reject")}
                       </button>
                     </div>
                   </div>
@@ -513,20 +517,20 @@ export function DriverDesk({
                 {canManage && (
                   <div className="space-y-2 border-t border-slate-100 pt-3">
                     <div className="flex flex-wrap gap-2">
-                      <button className="btn btn-ghost" type="button" onClick={() => { setEditing(selected); setFormOpen(true); }}>Edit</button>
+                      <button className="btn btn-ghost" type="button" onClick={() => { setEditing(selected); setFormOpen(true); }}>{t("Edit")}</button>
                       {STATUSES.filter((s) => s !== "SUSPENDED" || mode === "admin" || isAdminUser).map((s) => (
-                        <button key={s} className="btn btn-ghost" type="button" disabled={busy} onClick={() => void setDriverStatus(selected.id, s)}>{s}</button>
+                        <button key={s} className="btn btn-ghost" type="button" disabled={busy} onClick={() => void setDriverStatus(selected.id, s)}>{t(s)}</button>
                       ))}
-                      <button className="btn btn-ghost" type="button" disabled={busy} onClick={() => void archive(selected.id)}>Archive</button>
+                      <button className="btn btn-ghost" type="button" disabled={busy} onClick={() => void archive(selected.id)}>{t("Archive")}</button>
                     </div>
                     <div className="flex gap-2">
                       <select className="input" value={assignBusId} onChange={(e) => setAssignBusId(e.target.value)}>
-                        <option value="">Select vehicle</option>
+                        <option value="">{t("Select vehicle")}</option>
                         {buses.map((b) => <option key={b.id} value={b.id}>{b.registrationNo}</option>)}
                       </select>
-                      <button className="btn btn-primary" type="button" disabled={busy || !assignBusId} onClick={() => void assign(selected.id, assignBusId)}>Assign</button>
+                      <button className="btn btn-primary" type="button" disabled={busy || !assignBusId} onClick={() => void assign(selected.id, assignBusId)}>{t("Assign")}</button>
                     </div>
-                    <button className="btn btn-ghost w-full" type="button" disabled={busy} onClick={() => void assign(selected.id, null)}>Unassign</button>
+                    <button className="btn btn-ghost w-full" type="button" disabled={busy} onClick={() => void assign(selected.id, null)}>{t("Unassign")}</button>
                   </div>
                 )}
 
@@ -540,11 +544,11 @@ export function DriverDesk({
                       void setVerification(selected.id, String(fd.get("licenseStatus")));
                     }}
                   >
-                    <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Manual / simulated verification</div>
+                    <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t("Manual / simulated verification")}</div>
                     <select className="input" name="licenseStatus" defaultValue={selected.licenseStatus ?? "PENDING"}>
-                      {LICENSE.map((s) => <option key={s} value={s}>{s}</option>)}
+                      {LICENSE.map((s) => <option key={s} value={s}>{t(s)}</option>)}
                     </select>
-                    <button className="btn btn-primary w-full" disabled={busy} type="submit">Save verification</button>
+                    <button className="btn btn-primary w-full" disabled={busy} type="submit">{t("Save verification")}</button>
                   </form>
                 )}
               </div>

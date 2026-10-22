@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
 import { Shield } from "lucide-react";
+import { useI18n } from "@/lib/i18n";
 
 export function BrandMark({
   invert = false,
@@ -13,6 +16,8 @@ export function BrandMark({
   /** When set, the mark is a navigable link (home / landing). */
   href?: string;
 }) {
+  const { t } = useI18n();
+
   const inner = (
     <>
       <span
@@ -25,7 +30,7 @@ export function BrandMark({
       {!compact && (
         <div className="min-w-0">
           <div className={`font-display truncate text-base font-semibold leading-tight tracking-tight ${invert ? "text-white" : "text-ink-900"}`}>
-            Nirapad Transit
+            {t("Nirapad Transit")}
           </div>
           {subtitle && (
             <div className={`truncate text-[11px] font-medium ${invert ? "text-slate-400" : "text-[var(--text-muted)]"}`}>
@@ -42,7 +47,7 @@ export function BrandMark({
       <Link
         href={href}
         className="flex min-w-0 items-center gap-2.5 rounded-xl outline-none transition hover:opacity-90 focus-visible:ring-2 focus-visible:ring-brand-500"
-        aria-label="Nirapad Transit home"
+        aria-label={t("Nirapad Transit home")}
       >
         {inner}
       </Link>

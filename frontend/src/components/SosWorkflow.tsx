@@ -5,6 +5,7 @@ import { AppShell } from "@/components/AppShell";
 import { LiveMap } from "@/components/map/LiveMap";
 import { Badge, EmptyState, ErrorState } from "@/components/StatCard";
 import { api } from "@/lib/api";
+import { useI18n } from "@/lib/i18n";
 import { getSocket } from "@/lib/socket";
 import type { BusLive, RoleCode } from "@/lib/types";
 
@@ -39,39 +40,48 @@ function tone(value?: string) {
   return "slate" as const;
 }
 
-function nextActions(status: string) {
+function nextActions(status: string, t: (text: string) => string) {
   if (status === "OPEN") {
     return [
-      { label: "Acknowledge", value: "ACKNOWLEDGED" },
-      { label: "False alarm", value: "FALSE_ALARM" },
+      { label: t("Acknowledge"), value: "ACKNOWLEDGED" },
+      { label: t("False alarm"), value: "FALSE_ALARM" },
     ];
   }
   if (status === "ACKNOWLEDGED") {
     return [
-      { label: "Investigate", value: "INVESTIGATING" },
-      { label: "Dispatch note", value: "DISPATCHED" },
-      { label: "Respond", value: "RESPONDING" },
-      { label: "Resolve", value: "RESOLVED" },
-      { label: "False alarm", value: "FALSE_ALARM" },
+      { label: t("Investigate"), value: "INVESTIGATING" },
+      { label: t("Dispatch note"), value: "DISPATCHED" },
+      { label: t("Respond"), value: "RESPONDING" },
+      { label: t("Resolve"), value: "RESOLVED" },
+      { label: t("False alarm"), value: "FALSE_ALARM" },
     ];
   }
   if (status === "INVESTIGATING") {
     return [
-      { label: "Respond", value: "RESPONDING" },
-      { label: "Dispatch note", value: "DISPATCHED" },
-      { label: "Resolve", value: "RESOLVED" },
-      { label: "False alarm", value: "FALSE_ALARM" },
+      { label: t("Respond"), value: "RESPONDING" },
+      { label: t("Dispatch note"), value: "DISPATCHED" },
+      { label: t("Resolve"), value: "RESOLVED" },
+      { label: t("False alarm"), value: "FALSE_ALARM" },
     ];
   }
-  if (status === "DISPATCHED") return [{ label: "Respond", value: "RESPONDING" }, { label: "Resolve", value: "RESOLVED" }];
-  if (status === "RESPONDING") return [{ label: "Resolve", value: "RESOLVED" }];
+  if (status === "DISPATCHED") return [{ label: t("Respond"), value: "RESPONDING" }, { label: t("Resolve"), value: "RESOLVED" }];
+  if (status === "RESPONDING") return [{ label: t("Resolve"), value: "RESOLVED" }];
   if (status === "RESOLVED" || status === "FALSE_ALARM" || status === "CANCELLED") {
-    return [{ label: "Close", value: "CLOSED" }];
+    return [{ label: t("Close"), value: "CLOSED" }];
   }
   return [];
 }
 
+const SOS_CATEGORIES = ["SAFETY", "MEDICAL", "ACCIDENT", "OTHER"] as const;
+const SOS_CATEGORY_LABELS: Record<(typeof SOS_CATEGORIES)[number], string> = {
+  SAFETY: "Safety",
+  MEDICAL: "Medical",
+  ACCIDENT: "Accident",
+  OTHER: "Other",
+};
+
 export function SosButtonPage({ allow, title }: { allow: RoleCode[]; title: string }) {
+  const { t } = useI18n();
   const [message, setMessage] = useState("");
   const [category, setCategory] = useState("SAFETY");
   const [confirm, setConfirm] = useState(false);
@@ -127,7 +137,7 @@ export function SosButtonPage({ allow, title }: { allow: RoleCode[]; title: stri
       if (!row.existing) newKey();
       loadHistory();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "SOS could not be recorded");
+      setError(err instanceof Error ? err.message : t("SOS could not be recorded"));
     } finally {
       setBusy(false);
     }
@@ -141,7 +151,7 @@ export function SosButtonPage({ allow, title }: { allow: RoleCode[]; title: stri
       newKey();
       loadHistory();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Cancel failed");
+      setError(err instanceof Error ? err.message : t("Cancel failed"));
     } finally {
       setBusy(false);
     }
@@ -151,58 +161,58 @@ export function SosButtonPage({ allow, title }: { allow: RoleCode[]; title: stri
     <AppShell allow={allow} title={title}>
       <div className="mx-auto grid w-full max-w-lg gap-4 lg:mx-0 lg:max-w-none lg:grid-cols-2">
         <div className="card w-full max-w-lg border-l-4 border-l-[var(--error)] p-4 sm:p-6 lg:max-w-none">
-          <h2 className="font-display text-lg font-semibold tracking-tight text-[var(--error)] sm:text-xl">Emergency SOS</h2>
+          <h2 className="font-display text-lg font-semibold tracking-tight text-[var(--error)] sm:text-xl">{t("Emergency SOS")}</h2>
           <p className="mt-2 text-sm text-[var(--text-secondary)]">
-            This records an SOS in the Nirapad Transit application for authorized monitoring accounts.
-            It does <strong>not</strong> call 999, police, ambulance, or any government dispatch service.
+            {t("This records an SOS in the Nirapad Transit application for authorized monitoring accounts.")}{" "}
+            {t("It does not call 999, police, ambulance, or any government dispatch service.")}
           </p>
           {active && (
             <p className="mt-3 rounded-xl bg-[var(--error-bg)] px-3 py-2 text-sm text-[var(--error)]">
-              You already have an active SOS ({active.status}). A new press reuses that record.
+              {t("You already have an active SOS")} ({t(active.status)}). {t("A new press reuses that record.")}
             </p>
           )}
-          <label className="mt-4 block text-sm font-medium">Category</label>
-          <select className="input mt-1" value={category} onChange={(e) => setCategory(e.target.value)} aria-label="SOS category">
-            <option value="SAFETY">Safety</option>
-            <option value="MEDICAL">Medical</option>
-            <option value="ACCIDENT">Accident</option>
-            <option value="OTHER">Other</option>
+          <label className="mt-4 block text-sm font-medium">{t("Category")}</label>
+          <select className="input mt-1" value={category} onChange={(e) => setCategory(e.target.value)} aria-label={t("SOS category")}>
+            {SOS_CATEGORIES.map((c) => (
+              <option key={c} value={c}>{t(SOS_CATEGORY_LABELS[c])}</option>
+            ))}
           </select>
-          <textarea className="input mt-3 min-h-24" value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Optional details for monitors" />
+          <textarea className="input mt-3 min-h-24" value={message} onChange={(e) => setMessage(e.target.value)} placeholder={t("Optional details for monitors")} />
           {error && <div className="mt-3"><ErrorState message={error} /></div>}
           {!confirm ? (
-            <button className="btn btn-danger mt-4 w-full py-3 text-base" onClick={() => setConfirm(true)}>Trigger SOS</button>
+            <button className="btn btn-danger mt-4 w-full py-3 text-base" onClick={() => setConfirm(true)}>{t("Trigger SOS")}</button>
           ) : (
             <div className="mt-4 space-y-2 rounded-xl bg-[var(--error-bg)] p-3">
-              <p className="text-sm font-medium text-[var(--error)]">Confirm: record an application SOS? This is a demo workflow only.</p>
+              <p className="text-sm font-medium text-[var(--error)]">{t("Confirm: record an application SOS? This is a demo workflow only.")}</p>
               <div className="flex gap-2">
-                <button className="btn btn-danger py-3" disabled={busy} onClick={() => void send()}>{busy ? "Recording…" : "Confirm SOS"}</button>
-                <button className="btn btn-ghost" disabled={busy} onClick={() => setConfirm(false)}>Back</button>
+                <button className="btn btn-danger py-3" disabled={busy} onClick={() => void send()}>{busy ? t("Recording…") : t("Confirm SOS")}</button>
+                <button className="btn btn-ghost" disabled={busy} onClick={() => setConfirm(false)}>{t("Back")}</button>
               </div>
             </div>
           )}
           {created && (
             <div className="mt-4 rounded-xl border border-[var(--border)] bg-[var(--surface-secondary)] p-3 text-sm">
-              <div className="font-semibold">SOS {created.existing ? "already active" : "recorded"}</div>
-              <div>Reference: {created.id}</div>
-              <div>Status: <Badge tone={tone(created.status)}>{created.status}</Badge></div>
-              <div>Time: {new Date(created.createdAt).toLocaleString()}</div>
+              <div className="font-semibold">{created.existing ? t("SOS already active") : t("SOS recorded")}</div>
+              <div>{t("Reference:")} {created.id}</div>
+              <div>{t("Status:")} <Badge tone={tone(created.status)}>{created.status}</Badge></div>
+              <div>{t("Time:")} {new Date(created.createdAt).toLocaleString()}</div>
               <div>
-                Location: {created.locationAvailable && created.latitude != null && created.longitude != null
+                {t("Location:")}{" "}
+                {created.locationAvailable && created.latitude != null && created.longitude != null
                   ? `${created.latitude.toFixed(4)}, ${created.longitude.toFixed(4)} (${created.locationSource})`
-                  : "Unavailable — no device coordinates were captured"}
+                  : t("Unavailable — no device coordinates were captured")}
               </div>
-              {created.registrationNo && <div>Vehicle: {created.registrationNo}</div>}
-              {created.routeName && <div>Route: {created.routeName}</div>}
-              <p className="mt-2 text-xs text-[var(--text-muted)]">{created.dataLabel}</p>
+              {created.registrationNo && <div>{t("Vehicle:")} {created.registrationNo}</div>}
+              {created.routeName && <div>{t("Route:")} {created.routeName}</div>}
+              {created.dataLabel && <p className="mt-2 text-xs text-[var(--text-muted)]">{t(created.dataLabel)}</p>}
               {created.status === "OPEN" && (
-                <button className="btn btn-outline mt-3" disabled={busy} onClick={() => void cancel(created.id)}>Cancel this SOS</button>
+                <button className="btn btn-outline mt-3" disabled={busy} onClick={() => void cancel(created.id)}>{t("Cancel this SOS")}</button>
               )}
             </div>
           )}
         </div>
         <div className="card p-4">
-          <h2 className="font-display mb-2 text-base font-semibold tracking-tight">Your SOS history</h2>
+          <h2 className="font-display mb-2 text-base font-semibold tracking-tight">{t("Your SOS history")}</h2>
           {!history.length ? <EmptyState title="No SOS records" body="Only your own SOS events appear here." /> : (
             <ul className="space-y-2 text-sm">
               {history.map((s) => (
@@ -211,9 +221,9 @@ export function SosButtonPage({ allow, title }: { allow: RoleCode[]; title: stri
                     <span className="font-medium">{new Date(s.createdAt).toLocaleString()}</span>
                     <Badge tone={tone(s.status)}>{s.status}</Badge>
                   </div>
-                  <div className="text-xs text-[var(--text-muted)]">{s.locationAvailable ? "Location captured" : "Location unavailable"}</div>
+                  <div className="text-xs text-[var(--text-muted)]">{s.locationAvailable ? t("Location captured") : t("Location unavailable")}</div>
                   {s.status === "OPEN" && (
-                    <button className="btn btn-ghost mt-2" disabled={busy} onClick={() => void cancel(s.id)}>Cancel</button>
+                    <button className="btn btn-ghost mt-2" disabled={busy} onClick={() => void cancel(s.id)}>{t("Cancel")}</button>
                   )}
                 </li>
               ))}
@@ -226,6 +236,7 @@ export function SosButtonPage({ allow, title }: { allow: RoleCode[]; title: stri
 }
 
 export function SosDesk({ allow }: { allow: RoleCode[] }) {
+  const { t } = useI18n();
   const [items, setItems] = useState<SosRecord[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -283,13 +294,13 @@ export function SosDesk({ allow }: { allow: RoleCode[] }) {
     }
     setBuses([{
       busId: selected.registrationNo ?? "vehicle",
-      registrationNo: selected.registrationNo ?? "Vehicle GPS",
+      registrationNo: selected.registrationNo ?? t("Vehicle GPS"),
       latitude: selected.vehicleLocation.latitude,
       longitude: selected.vehicleLocation.longitude,
       speed: 0,
       heading: 0,
       timestamp: selected.vehicleLocation.timestamp ?? new Date().toISOString(),
-      dataLabel: selected.vehicleLocation.stale ? "VEHICLE GPS STALE" : "VEHICLE GPS",
+      dataLabel: selected.vehicleLocation.stale ? t("VEHICLE GPS STALE") : t("VEHICLE GPS"),
     }]);
   }, [selected]);
 
@@ -308,41 +319,41 @@ export function SosDesk({ allow }: { allow: RoleCode[] }) {
 
   const pages = Math.max(1, Math.ceil(total / 12));
   const sosPoint = selected?.locationAvailable && selected.latitude != null && selected.longitude != null
-    ? { lat: selected.latitude, lng: selected.longitude, label: "SOS" }
+    ? { lat: selected.latitude, lng: selected.longitude, label: t("SOS") }
     : null;
 
   return (
-    <AppShell allow={allow} title="Emergency SOS">
+    <AppShell allow={allow} title={t("Emergency SOS")}>
       {error && <ErrorState message={error} />}
       <p className="mb-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text-muted)]">
-        Application SOS desk. Status changes are recorded in this system only. No police, ambulance, or 999 dispatch is connected.
+        {t("Application SOS desk. Status changes are recorded in this system only. No police, ambulance, or 999 dispatch is connected.")}
       </p>
       <div className="card toolbar mb-3 p-3">
-        <input className="input" aria-label="Search SOS" placeholder="Name, message, registration" value={q} onChange={(e) => setQ(e.target.value)} />
-        <select className="input sm:w-44" aria-label="Filter SOS status" value={status} onChange={(e) => setStatus(e.target.value)}>
-          <option value="">All status</option>
+        <input className="input" aria-label={t("Search SOS")} placeholder={t("Name, message, registration")} value={q} onChange={(e) => setQ(e.target.value)} />
+        <select className="input sm:w-44" aria-label={t("Filter SOS status")} value={status} onChange={(e) => setStatus(e.target.value)}>
+          <option value="">{t("All status")}</option>
           {["OPEN", "ACKNOWLEDGED", "INVESTIGATING", "RESPONDING", "DISPATCHED", "RESOLVED", "CANCELLED", "CLOSED", "FALSE_ALARM"].map((s) => (
-            <option key={s} value={s}>{s}</option>
+            <option key={s} value={s}>{t(s)}</option>
           ))}
         </select>
-        <input className="input sm:w-44" type="date" aria-label="From date" value={from} onChange={(e) => setFrom(e.target.value)} />
+        <input className="input sm:w-44" type="date" aria-label={t("From date")} value={from} onChange={(e) => setFrom(e.target.value)} />
       </div>
       <div className="grid gap-4 xl:grid-cols-2">
         <div>
-          {loading && !items.length ? <p className="text-sm text-slate-500">Loading…</p> : !items.length ? (
+          {loading && !items.length ? <p className="text-sm text-slate-500">{t("Loading…")}</p> : !items.length ? (
             <EmptyState title="No SOS events" body="No SOS records match the current filters." />
           ) : (
             <div className="table-wrap">
               <table className="data">
                 <thead>
                   <tr>
-                    <th>Time</th>
-                    <th>Requester</th>
-                    <th>Severity</th>
-                    <th>Status</th>
-                    <th>Vehicle</th>
-                    <th>Location</th>
-                    <th>Action</th>
+                    <th>{t("Time")}</th>
+                    <th>{t("Requester")}</th>
+                    <th>{t("Severity")}</th>
+                    <th>{t("Status")}</th>
+                    <th>{t("Vehicle")}</th>
+                    <th>{t("Location")}</th>
+                    <th>{t("Action")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -354,13 +365,13 @@ export function SosDesk({ allow }: { allow: RoleCode[] }) {
                     >
                       <td className="font-medium text-[var(--error)]">{new Date(s.createdAt).toLocaleString()}</td>
                       <td>{s.requesterName ?? "—"}</td>
-                      <td><Badge tone="red">{s.severity ?? "CRITICAL"}</Badge></td>
+                      <td><Badge tone="red">{t(s.severity ?? "CRITICAL")}</Badge></td>
                       <td><Badge tone={tone(s.status)}>{s.status}</Badge></td>
                       <td>{s.registrationNo ?? "—"}</td>
-                      <td>{s.locationAvailable && s.latitude != null ? `${s.latitude.toFixed(3)}, ${s.longitude?.toFixed(3)}` : "Unavailable"}</td>
+                      <td>{s.locationAvailable && s.latitude != null ? `${s.latitude.toFixed(3)}, ${s.longitude?.toFixed(3)}` : t("Unavailable")}</td>
                       <td>
                         <div className="flex flex-wrap gap-1">
-                          {nextActions(s.status).map((a) => (
+                          {nextActions(s.status, t).map((a) => (
                             <button key={a.value} type="button" className="btn btn-ghost px-2 py-1 text-xs" onClick={(e) => { e.stopPropagation(); void update(s.id, a.value); }}>{a.label}</button>
                           ))}
                         </div>
@@ -372,11 +383,11 @@ export function SosDesk({ allow }: { allow: RoleCode[] }) {
             </div>
           )}
           <div className="pager">
-            <span>{total} SOS records</span>
+            <span>{total} {t("SOS records")}</span>
             <div className="pager-actions">
-              <button type="button" className="btn btn-ghost" disabled={page <= 1} onClick={() => setPage(page - 1)}>Previous</button>
-              <span className="self-center">Page {page} / {pages}</span>
-              <button type="button" className="btn btn-ghost" disabled={page >= pages} onClick={() => setPage(page + 1)}>Next</button>
+              <button type="button" className="btn btn-ghost" disabled={page <= 1} onClick={() => setPage(page - 1)}>{t("Previous")}</button>
+              <span className="self-center">{t("Page")} {page} / {pages}</span>
+              <button type="button" className="btn btn-ghost" disabled={page >= pages} onClick={() => setPage(page + 1)}>{t("Next")}</button>
             </div>
           </div>
         </div>
@@ -384,14 +395,14 @@ export function SosDesk({ allow }: { allow: RoleCode[] }) {
           <LiveMap buses={buses} sosLocation={sosPoint} />
           {selected ? (
             <div className="card p-4 text-sm">
-              <div className="font-semibold">SOS {selected.id}</div>
-              <p className="mt-1">{selected.message ?? "No passenger message"}</p>
+              <div className="font-semibold">{t("SOS")} {selected.id}</div>
+              <p className="mt-1">{selected.message ?? t("No passenger message")}</p>
               <p className="mt-1 text-xs text-[var(--text-muted)]">
-                SOS marker = requester location (if captured). Bus marker = vehicle GPS when associated. These are not the same source.
+                {t("SOS marker = requester location (if captured). Bus marker = vehicle GPS when associated. These are not the same source.")}
               </p>
-              <label className="mt-3 block text-xs font-semibold uppercase text-[var(--text-muted)]">Internal note (not shown to the requester)</label>
+              <label className="mt-3 block text-xs font-semibold uppercase text-[var(--text-muted)]">{t("Internal note (not shown to the requester)")}</label>
               <textarea className="input mt-1 min-h-20" value={note} onChange={(e) => setNote(e.target.value)} />
-              <button className="btn btn-primary mt-2" type="button" onClick={() => void saveNote()}>Save note</button>
+              <button className="btn btn-primary mt-2" type="button" onClick={() => void saveNote()}>{t("Save note")}</button>
             </div>
           ) : (
             <EmptyState title="Select an SOS" body="Choose a row to see location context and add an internal note." />

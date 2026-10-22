@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { LiveMap } from "@/components/map/LiveMap";
 import { Badge, ErrorState } from "@/components/StatCard";
 import { api } from "@/lib/api";
+import { useI18n } from "@/lib/i18n";
 import type { BusLive } from "@/lib/types";
 
 type BusDetail = {
@@ -59,6 +60,7 @@ export function NoticeVehicleDetail({
   emergency?: boolean;
   onClose: () => void;
 }) {
+  const { t } = useI18n();
   const busId = payloadBusId(payload);
   const [bus, setBus] = useState<BusDetail | null>(null);
   const [live, setLive] = useState<BusLive | null>(null);
@@ -123,11 +125,13 @@ export function NoticeVehicleDetail({
   if (!busId) {
     return (
       <div className="mt-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3 text-sm">
-        <p className="text-[var(--text-muted)]">This notice is not linked to a specific vehicle.</p>
-        <button type="button" className="btn btn-ghost mt-2" onClick={onClose}>Close</button>
+        <p className="text-[var(--text-muted)]">{t("This notice is not linked to a specific vehicle.")}</p>
+        <button type="button" className="btn btn-ghost mt-2" onClick={onClose}>{t("Close")}</button>
       </div>
     );
   }
+
+  const vehicleTypeLabel = t((bus?.vehicleType ?? "Bus").replaceAll("_", " "));
 
   return (
     <div
@@ -137,53 +141,53 @@ export function NoticeVehicleDetail({
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className={`font-display text-base font-semibold ${emergency ? "text-[var(--error)]" : ""}`}>
-          Vehicle &amp; driver details
+          {t("Vehicle & driver details")}
         </h3>
-        <button type="button" className="btn btn-ghost" onClick={onClose}>Close</button>
+        <button type="button" className="btn btn-ghost" onClick={onClose}>{t("Close")}</button>
       </div>
 
-      {loading && <p className="text-sm text-[var(--text-muted)]">Loading vehicle details…</p>}
+      {loading && <p className="text-sm text-[var(--text-muted)]">{t("Loading vehicle details…")}</p>}
       {error && <ErrorState message={error} />}
 
       {bus && !loading && (
         <>
           <section className="grid gap-3 text-sm sm:grid-cols-2">
             <div>
-              <div className="text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">Bus</div>
+              <div className="text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">{t("Bus")}</div>
               <div className="mt-1 font-semibold">{bus.registrationNo}</div>
-              <div>{(bus.vehicleType ?? "Bus").replaceAll("_", " ")}{bus.capacity ? ` · ${bus.capacity} seats` : ""}</div>
+              <div>{vehicleTypeLabel}{bus.capacity ? ` · ${bus.capacity} ${t("seats")}` : ""}</div>
               <div className="text-[var(--text-secondary)]">
                 {[bus.manufacturer, bus.model].filter(Boolean).join(" ") || "—"}
                 {bus.yearOfManufacture ? ` (${bus.yearOfManufacture})` : ""}
               </div>
               <div className="mt-1 flex flex-wrap gap-1">
-                <Badge tone={bus.operationalStatus === "ACTIVE" ? "green" : "yellow"}>{bus.operationalStatus ?? "—"}</Badge>
-                {bus.registrationStatus && <Badge tone="slate">Reg {bus.registrationStatus}</Badge>}
-                {bus.fitnessStatus && <Badge tone="slate">Fitness {bus.fitnessStatus}</Badge>}
+                <Badge tone={bus.operationalStatus === "ACTIVE" ? "green" : "yellow"}>{bus.operationalStatus ? t(bus.operationalStatus) : "—"}</Badge>
+                {bus.registrationStatus && <Badge tone="slate">{t("Reg")} {t(bus.registrationStatus)}</Badge>}
+                {bus.fitnessStatus && <Badge tone="slate">{t("Fitness")} {t(bus.fitnessStatus)}</Badge>}
               </div>
             </div>
             <div>
-              <div className="text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">Operator / route</div>
+              <div className="text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">{t("Operator / route")}</div>
               <div className="mt-1">{bus.company?.name ?? "—"}</div>
               <div className="text-[var(--text-secondary)]">
-                {bus.route ? `${bus.route.code} · ${bus.route.name}` : "No route assigned"}
+                {bus.route ? `${bus.route.code} · ${bus.route.name}` : t("No route assigned")}
               </div>
               {bus.route?.allowedSpeed != null && (
-                <div className="text-xs text-[var(--text-muted)]">Limit {bus.route.allowedSpeed} km/h</div>
+                <div className="text-xs text-[var(--text-muted)]">{t("Limit")} {bus.route.allowedSpeed} {t("km/h")}</div>
               )}
             </div>
             <div className="sm:col-span-2">
-              <div className="text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">Driver</div>
-              <div className="mt-1 font-medium">{bus.driver?.name ?? "Unassigned"}</div>
+              <div className="text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">{t("Driver")}</div>
+              <div className="mt-1 font-medium">{bus.driver?.name ?? t("Unassigned")}</div>
             </div>
           </section>
 
           <section>
             <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-              <h4 className="font-display text-sm font-semibold">Live location</h4>
+              <h4 className="font-display text-sm font-semibold">{t("Live location")}</h4>
               {live && (
                 <span className="text-xs text-[var(--text-muted)]">
-                  {live.trackingState ?? "ONLINE"} · {Number(live.speed).toFixed(0)} km/h ·{" "}
+                  {t(live.trackingState ?? "ONLINE")} · {Number(live.speed).toFixed(0)} {t("km/h")} ·{" "}
                   {live.timestamp ? new Date(live.timestamp).toLocaleString() : "—"}
                 </span>
               )}
@@ -192,10 +196,10 @@ export function NoticeVehicleDetail({
               <LiveMap buses={[live]} />
             ) : (
               <p className="rounded-xl bg-[var(--surface-secondary)] px-3 py-2 text-sm text-[var(--text-muted)]">
-                No live GPS sample is available for this vehicle yet.
+                {t("No live GPS sample is available for this vehicle yet.")}
               </p>
             )}
-            <p className="mt-2 text-xs text-[var(--text-muted)]">GPS is SIMULATED unless a real device feed is configured.</p>
+            <p className="mt-2 text-xs text-[var(--text-muted)]">{t("GPS is SIMULATED unless a real device feed is configured.")}</p>
           </section>
         </>
       )}

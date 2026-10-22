@@ -23,7 +23,7 @@ export function PassengerQrScan() {
   function goToBus(raw: string) {
     const token = parseBusQrPayload(raw);
     if (!token) {
-      setError("That code is not a Nirapad bus QR. Scan the sticker on the vehicle, or paste the /bus/… link.");
+      setError(t("That code is not a Nirapad bus QR. Scan the sticker on the vehicle, or paste the /bus/… link."));
       return;
     }
     if (typeof window !== "undefined") {
@@ -64,7 +64,7 @@ export function PassengerQrScan() {
         if (!cancelled) {
           setCameraSupported(false);
           setScanning(false);
-          setError("Camera unavailable. Enter the QR link or token manually below.");
+          setError(t("Camera unavailable. Enter the QR link or token manually below."));
         }
       }
     })();
@@ -82,10 +82,9 @@ export function PassengerQrScan() {
     <AppShell allow={["PASSENGER", "SUPER_ADMIN"]} title="Scan bus QR">
       <div className="mx-auto w-full max-w-lg space-y-4">
         <section className="card border-l-4 border-l-[var(--brand-primary)] p-4 sm:p-6">
-          <h2 className="font-display text-lg font-semibold tracking-tight">Board a bus</h2>
+          <h2 className="font-display text-lg font-semibold tracking-tight">{t("Board a bus")}</h2>
           <p className="mt-2 text-sm text-[var(--text-secondary)]">
-            After you log in, point your camera at the QR code on the bus. You will see vehicle and driver details,
-            then you can lodge a complaint or trigger an emergency SOS for that bus.
+            {t("After you log in, point your camera at the QR code on the bus. You will see vehicle and driver details, then you can lodge a complaint or trigger an emergency SOS for that bus.")}
           </p>
         </section>
 
@@ -95,7 +94,7 @@ export function PassengerQrScan() {
           <div className="mb-3 flex items-center gap-2 text-sm font-medium">
             <Camera className="h-4 w-4 text-brand-600" aria-hidden />
             {t("Camera scan")}
-            {scanning && <span className="text-xs font-normal text-[var(--text-muted)]">· looking for QR…</span>}
+            {scanning && <span className="text-xs font-normal text-[var(--text-muted)]">{t("· looking for QR…")}</span>}
           </div>
           <div
             id={elementId}
@@ -103,7 +102,7 @@ export function PassengerQrScan() {
           />
           {!cameraSupported && (
             <p className="mt-3 text-xs text-[var(--text-muted)]">
-              Use a phone browser with camera permission, or paste the QR URL / token below.
+              {t("Use a phone browser with camera permission, or paste the QR URL / token below.")}
             </p>
           )}
         </section>
@@ -114,14 +113,14 @@ export function PassengerQrScan() {
             {t("Enter code manually")}
           </div>
           <label className="block text-sm" htmlFor="qr-manual">
-            Bus QR link or token
+            {t("Bus QR link or token")}
           </label>
           <input
             id="qr-manual"
             className="input"
             value={manual}
             onChange={(e) => setManual(e.target.value)}
-            placeholder="https://…/bus/… or token"
+            placeholder={t("https://…/bus/… or token")}
             autoComplete="off"
           />
           <button
@@ -135,7 +134,7 @@ export function PassengerQrScan() {
             {t("Open bus details")}
           </button>
           <p className="text-xs text-[var(--text-muted)]">
-            Demo tip: open any vehicle in Admin/Owner → Buses, copy its QR link, and paste it here.
+            {t("Demo tip: open any vehicle in Admin/Owner → Buses, copy its QR link, and paste it here.")}
           </p>
         </section>
       </div>

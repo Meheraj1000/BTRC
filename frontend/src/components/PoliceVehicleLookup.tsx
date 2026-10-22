@@ -136,32 +136,35 @@ export function PoliceVehicleLookup() {
   return (
     <AppShell allow={["POLICE", "SUPER_ADMIN"]} title="Vehicle lookup">
       <p className="mb-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text-muted)]">
-        Roadside / incident lookup. Search by registration to see the operating driver, vehicle details, and route point of
-        origin. GPS is SIMULATED. License numbers and phone numbers are not shown.
+        {t(
+          "Roadside / incident lookup. Search by registration to see the operating driver, vehicle details, and route point of origin. GPS is SIMULATED. License numbers and phone numbers are not shown.",
+        )}
       </p>
 
       <div className="toolbar mb-4">
         <input
           className="input max-w-md"
-          aria-label="Search registration"
-          placeholder="Registration number (e.g. DHAKA-METRO-D-DEMO-11)"
+          aria-label={t("Search registration")}
+          placeholder={t("Registration number (e.g. DHAKA-METRO-D-DEMO-11)")}
           value={q}
           onChange={(e) => setQ(e.target.value)}
           autoFocus
         />
         <button type="button" className="btn btn-ghost" onClick={() => void load()}>
-          Refresh
+          {t("Refresh")}
         </button>
         <Link className="btn btn-ghost" href="/police/dashboard">
-          Dashboard
+          {t("Dashboard")}
         </Link>
-        <span className="text-xs text-[var(--text-muted)]">{total} vehicles</span>
+        <span className="text-xs text-[var(--text-muted)]">
+          {total} {t("vehicles")}
+        </span>
       </div>
 
       {error && <ErrorState message={error} />}
 
       {loading && !items.length ? (
-        <p className="text-sm text-[var(--text-muted)]">Loading vehicles…</p>
+        <p className="text-sm text-[var(--text-muted)]">{t("Loading vehicles…")}</p>
       ) : !items.length ? (
         <EmptyState title="No vehicles found" body="Try another registration fragment, or clear the search." />
       ) : (
@@ -170,11 +173,11 @@ export function PoliceVehicleLookup() {
             <table className="data">
               <thead>
                 <tr>
-                  <th>Registration</th>
-                  <th>Operator</th>
-                  <th>Driver</th>
-                  <th>Origin</th>
-                  <th>Status</th>
+                  <th>{t("Registration")}</th>
+                  <th>{t("Operator")}</th>
+                  <th>{t("Driver")}</th>
+                  <th>{t("Origin")}</th>
+                  <th>{t("Status")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -186,7 +189,7 @@ export function PoliceVehicleLookup() {
                   >
                     <td className="font-medium">{row.registrationNo}</td>
                     <td>{row.company?.name ?? "—"}</td>
-                    <td>{row.driver?.name ?? "Unassigned"}</td>
+                    <td>{row.driver?.name ?? t("Unassigned")}</td>
                     <td>{row.route?.startName ?? "—"}</td>
                     <td>
                       <Badge tone={toneFor(row.operationalStatus)}>{row.operationalStatus ?? "—"}</Badge>
@@ -197,11 +200,11 @@ export function PoliceVehicleLookup() {
             </table>
             <div className="pager px-3 py-2">
               <span>
-                Page {page} of {pages}
+                {t("Page")} {page} {t("of")} {pages}
               </span>
               <div className="pager-actions">
                 <button className="btn btn-ghost" type="button" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
-                  Previous
+                  {t("Previous")}
                 </button>
                 <button
                   className="btn btn-ghost"
@@ -209,7 +212,7 @@ export function PoliceVehicleLookup() {
                   disabled={page >= pages}
                   onClick={() => setPage((p) => p + 1)}
                 >
-                  Next
+                  {t("Next")}
                 </button>
               </div>
             </div>
@@ -217,13 +220,13 @@ export function PoliceVehicleLookup() {
 
           <aside className="card space-y-4 p-4 sm:p-5">
             {!selected ? (
-              <p className="text-sm text-[var(--text-muted)]">Select a vehicle to view roadside details.</p>
+              <p className="text-sm text-[var(--text-muted)]">{t("Select a vehicle to view roadside details.")}</p>
             ) : (
               <>
                 <header>
                   <h2 className="font-display text-lg font-semibold tracking-tight">{selected.registrationNo}</h2>
                   <p className="text-xs text-[var(--text-muted)]">
-                    {selected.verificationLabel ?? "MANUAL / SIMULATED VERIFICATION"}
+                    {selected.verificationLabel ?? t("MANUAL / SIMULATED VERIFICATION")}
                   </p>
                 </header>
 
@@ -232,7 +235,7 @@ export function PoliceVehicleLookup() {
                     {t("Point of origin")}
                   </h3>
                   {!selected.route ? (
-                    <p className="text-sm text-[var(--text-muted)]">No route assigned — origin unknown.</p>
+                    <p className="text-sm text-[var(--text-muted)]">{t("No route assigned — origin unknown.")}</p>
                   ) : (
                     <>
                       <p className="text-base font-semibold">{selected.route.startName ?? "—"}</p>
@@ -242,7 +245,9 @@ export function PoliceVehicleLookup() {
                       <p className="text-xs text-[var(--text-muted)]">
                         {selected.route.code} · {selected.route.name}
                         {selected.route.city ? ` · ${selected.route.city}` : ""}
-                        {selected.route.allowedSpeed != null ? ` · limit ${selected.route.allowedSpeed} km/h` : ""}
+                        {selected.route.allowedSpeed != null
+                          ? ` · ${t("limit")} ${selected.route.allowedSpeed} km/h`
+                          : ""}
                       </p>
                     </>
                   )}
@@ -253,19 +258,19 @@ export function PoliceVehicleLookup() {
                     {t("Operating driver")}
                   </h3>
                   {!selected.driver ? (
-                    <p className="text-sm text-[var(--text-muted)]">No driver currently assigned.</p>
+                    <p className="text-sm text-[var(--text-muted)]">{t("No driver currently assigned.")}</p>
                   ) : (
                     <dl className="grid gap-2 text-sm sm:grid-cols-2">
                       <div>
-                        <dt className="text-xs text-[var(--text-muted)]">Name</dt>
+                        <dt className="text-xs text-[var(--text-muted)]">{t("Name")}</dt>
                         <dd className="font-medium">{selected.driver.name ?? "—"}</dd>
                       </div>
                       <div>
-                        <dt className="text-xs text-[var(--text-muted)]">Duty status</dt>
+                        <dt className="text-xs text-[var(--text-muted)]">{t("Duty status")}</dt>
                         <dd>{selected.driver.status ?? "—"}</dd>
                       </div>
                       <div>
-                        <dt className="text-xs text-[var(--text-muted)]">License status</dt>
+                        <dt className="text-xs text-[var(--text-muted)]">{t("License status")}</dt>
                         <dd>
                           <Badge tone={toneFor(selected.driver.licenseStatus)}>
                             {selected.driver.licenseStatus ?? "—"}
@@ -273,10 +278,10 @@ export function PoliceVehicleLookup() {
                         </dd>
                       </div>
                       <div>
-                        <dt className="text-xs text-[var(--text-muted)]">Experience</dt>
+                        <dt className="text-xs text-[var(--text-muted)]">{t("Experience")}</dt>
                         <dd>
                           {selected.driver.experienceYears != null
-                            ? `${selected.driver.experienceYears} years`
+                            ? `${selected.driver.experienceYears} ${t("years")}`
                             : "—"}
                         </dd>
                       </div>
@@ -290,22 +295,22 @@ export function PoliceVehicleLookup() {
                   </h3>
                   <dl className="grid gap-2 text-sm sm:grid-cols-2">
                     <div>
-                      <dt className="text-xs text-[var(--text-muted)]">Type</dt>
+                      <dt className="text-xs text-[var(--text-muted)]">{t("Type")}</dt>
                       <dd>{(selected.vehicleType ?? "—").replaceAll("_", " ")}</dd>
                     </div>
                     <div>
-                      <dt className="text-xs text-[var(--text-muted)]">Capacity</dt>
+                      <dt className="text-xs text-[var(--text-muted)]">{t("Capacity")}</dt>
                       <dd>{selected.capacity ?? "—"}</dd>
                     </div>
                     <div>
-                      <dt className="text-xs text-[var(--text-muted)]">Make / model</dt>
+                      <dt className="text-xs text-[var(--text-muted)]">{t("Make / model")}</dt>
                       <dd>
                         {[selected.manufacturer, selected.model].filter(Boolean).join(" ") || "—"}
                         {selected.yearOfManufacture ? ` (${selected.yearOfManufacture})` : ""}
                       </dd>
                     </div>
                     <div>
-                      <dt className="text-xs text-[var(--text-muted)]">Operator</dt>
+                      <dt className="text-xs text-[var(--text-muted)]">{t("Operator")}</dt>
                       <dd>
                         {selected.company?.name ?? "—"}
                         {selected.company?.city ? ` · ${selected.company.city}` : ""}
@@ -315,19 +320,27 @@ export function PoliceVehicleLookup() {
                   <div className="flex flex-wrap gap-1 pt-1">
                     <Badge tone={toneFor(selected.operationalStatus)}>{selected.operationalStatus ?? "—"}</Badge>
                     {selected.registrationStatus && (
-                      <Badge tone={toneFor(selected.registrationStatus)}>Reg {selected.registrationStatus}</Badge>
+                      <Badge tone={toneFor(selected.registrationStatus)}>
+                        {t("Reg")} {selected.registrationStatus}
+                      </Badge>
                     )}
                     {selected.fitnessStatus && (
-                      <Badge tone={toneFor(selected.fitnessStatus)}>Fitness {selected.fitnessStatus}</Badge>
+                      <Badge tone={toneFor(selected.fitnessStatus)}>
+                        {t("Fitness")} {selected.fitnessStatus}
+                      </Badge>
                     )}
                     {selected.insuranceStatus && (
-                      <Badge tone={toneFor(selected.insuranceStatus)}>Token {selected.insuranceStatus}</Badge>
+                      <Badge tone={toneFor(selected.insuranceStatus)}>
+                        {t("Token")} {selected.insuranceStatus}
+                      </Badge>
                     )}
                     {selected.complianceStatus && (
                       <Badge tone={toneFor(selected.complianceStatus)}>{selected.complianceStatus}</Badge>
                     )}
                     {selected.trackingState && (
-                      <Badge tone={toneFor(selected.trackingState)}>GPS {selected.trackingState}</Badge>
+                      <Badge tone={toneFor(selected.trackingState)}>
+                        {t("GPS")} {selected.trackingState}
+                      </Badge>
                     )}
                   </div>
                 </section>
@@ -339,7 +352,7 @@ export function PoliceVehicleLookup() {
                     </h3>
                     <p className="text-xs text-[var(--text-muted)]">
                       {live.trackingState} · {live.speed.toFixed(0)} km/h ·{" "}
-                      {live.timestamp ? new Date(live.timestamp).toLocaleString() : "—"} · SIMULATED
+                      {live.timestamp ? new Date(live.timestamp).toLocaleString() : "—"} · {t("SIMULATED")}
                     </p>
                     <LiveMap buses={[live]} />
                   </section>

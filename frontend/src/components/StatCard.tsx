@@ -1,17 +1,33 @@
-export function StatCard({ label, value, hint }: { label: string; value: number | string; hint?: string }) {
+"use client";
+
+import { useI18n } from "@/lib/i18n";
+
+export function StatCard({
+  label,
+  value,
+  hint,
+}: {
+  label: string;
+  value: number | string;
+  hint?: React.ReactNode;
+}) {
+  const { t } = useI18n();
   return (
     <div className="card relative overflow-hidden p-4">
       <div className="absolute inset-y-0 left-0 w-1 bg-brand-600" aria-hidden />
       <div className="pl-2">
-        <div className="section-label">{label}</div>
+        <div className="section-label">{t(label)}</div>
         <div className="font-display mt-1 text-2xl font-semibold tracking-tight text-ink-900">{value}</div>
-        {hint && <div className="mt-1 text-xs text-[var(--text-muted)]">{hint}</div>}
+        {hint != null && hint !== false && (
+          <div className="mt-1 text-xs text-[var(--text-muted)]">{typeof hint === "string" ? t(hint) : hint}</div>
+        )}
       </div>
     </div>
   );
 }
 
 export function EmptyState({ title, body }: { title: string; body: string }) {
+  const { t } = useI18n();
   return (
     <div className="card p-10 text-center">
       <div className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-full bg-[var(--surface-secondary)] text-brand-600" aria-hidden>
@@ -20,25 +36,27 @@ export function EmptyState({ title, body }: { title: string; body: string }) {
           <path d="M12 8v5M12 16h.01" />
         </svg>
       </div>
-      <div className="font-display text-base font-semibold">{title}</div>
-      <p className="mt-1 text-sm text-[var(--text-muted)]">{body}</p>
+      <div className="font-display text-base font-semibold">{t(title)}</div>
+      <p className="mt-1 text-sm text-[var(--text-muted)]">{t(body)}</p>
     </div>
   );
 }
 
 export function ErrorState({ message }: { message: string }) {
+  const { t } = useI18n();
   return (
     <div
       className="rounded-xl border px-4 py-3 text-sm"
       style={{ borderColor: "var(--error)", background: "var(--error-bg)", color: "var(--error)" }}
       role="alert"
     >
-      {message}
+      {t(message)}
     </div>
   );
 }
 
 export function Badge({ children, tone = "slate" }: { children: React.ReactNode; tone?: "slate" | "green" | "yellow" | "red" | "teal" }) {
+  const { t } = useI18n();
   const map = {
     slate: "bg-[var(--surface-secondary)] text-[var(--text-secondary)]",
     green: "bg-[var(--success-bg)] text-[var(--success)]",
@@ -48,7 +66,7 @@ export function Badge({ children, tone = "slate" }: { children: React.ReactNode;
   };
   return (
     <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${map[tone]}`}>
-      {children}
+      {typeof children === "string" ? t(children) : children}
     </span>
   );
 }

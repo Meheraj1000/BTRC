@@ -2,13 +2,19 @@
 
 import dynamic from "next/dynamic";
 import "leaflet/dist/leaflet.css";
+import { useI18n } from "@/lib/i18n";
 import type { BusLive } from "@/lib/types";
 
-const Inner = dynamic(() => import("./LiveMapInner"), { ssr: false, loading: () => (
-  <div className="map-frame grid place-items-center bg-[var(--surface-secondary)] text-sm text-[var(--text-muted)]">
-    Loading map…
-  </div>
-) });
+function MapLoading() {
+  const { t } = useI18n();
+  return (
+    <div className="map-frame grid place-items-center bg-[var(--surface-secondary)] text-sm text-[var(--text-muted)]">
+      {t("Loading map…")}
+    </div>
+  );
+}
+
+const Inner = dynamic(() => import("./LiveMapInner"), { ssr: false, loading: () => <MapLoading /> });
 
 export function LiveMap(props: {
   buses: BusLive[];

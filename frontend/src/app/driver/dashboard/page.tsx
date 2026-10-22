@@ -5,9 +5,11 @@ import { AppShell } from "@/components/AppShell";
 import { Badge, StatCard } from "@/components/StatCard";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { useI18n } from "@/lib/i18n";
 
 export default function Page() {
   const { user } = useAuth();
+  const { t } = useI18n();
   const [trips, setTrips] = useState<Array<Record<string, unknown>>>([]);
   const [alerts, setAlerts] = useState<Array<Record<string, unknown>>>([]);
   useEffect(() => {
@@ -24,8 +26,10 @@ export default function Page() {
         <StatCard label="Visible alerts" value={alerts.length} />
       </div>
       <div className="mt-4 card p-4 text-sm text-slate-600">
-        Use <strong>Trip</strong> to start or end a shift, <strong>GPS</strong> to see live movement, and <strong>SOS</strong> for emergencies.
-        License status: <Badge tone="teal">{user?.driver?.licenseStatus ?? "see profile"}</Badge>
+        {t("Use")} <strong>{t("Trip")}</strong> {t("to start or end a shift,")}{" "}
+        <strong>{t("GPS")}</strong> {t("to see live movement, and")} <strong>{t("SOS")}</strong> {t("for emergencies.")}{" "}
+        {t("License status:")}{" "}
+        <Badge tone="teal">{user?.driver?.licenseStatus ?? t("see profile")}</Badge>
       </div>
     </AppShell>
   );

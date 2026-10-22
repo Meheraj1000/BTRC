@@ -85,14 +85,23 @@ function fmtWhen(value?: string | null) {
 }
 
 function Pager({ page, pageSize, total, onPage }: { page: number; pageSize: number; total: number; onPage: (next: number) => void }) {
+  const { t } = useI18n();
   const pages = Math.max(1, Math.ceil(total / pageSize));
   return (
     <div className="pager">
-      <span>{total} records</span>
+      <span>
+        {total} {t("records")}
+      </span>
       <div className="pager-actions">
-        <button type="button" className="btn btn-ghost" disabled={page <= 1} onClick={() => onPage(page - 1)}>Previous</button>
-        <span className="self-center">Page {page} / {pages}</span>
-        <button type="button" className="btn btn-ghost" disabled={page >= pages} onClick={() => onPage(page + 1)}>Next</button>
+        <button type="button" className="btn btn-ghost" disabled={page <= 1} onClick={() => onPage(page - 1)}>
+          {t("Previous")}
+        </button>
+        <span className="self-center">
+          {t("Page")} {page} / {pages}
+        </span>
+        <button type="button" className="btn btn-ghost" disabled={page >= pages} onClick={() => onPage(page + 1)}>
+          {t("Next")}
+        </button>
       </div>
     </div>
   );
@@ -222,14 +231,32 @@ export function DashboardView({
     <div className="space-y-5">
       {error && <ErrorState message={error} />}
       <p className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text-muted)]">
-        Central monitoring uses live API counts from this deployment. GPS is SIMULATED. Route status is rule-based, not AI. Verification is MANUAL / SIMULATED.
+        {t(
+          "Central monitoring uses live API counts from this deployment. GPS is SIMULATED. Route status is rule-based, not AI. Verification is MANUAL / SIMULATED.",
+        )}
       </p>
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-        <StatCard label="Vehicles" value={cards.totalBuses ?? "—"} hint={`${cards.activeBuses ?? 0} active`} />
+        <StatCard
+          label="Vehicles"
+          value={cards.totalBuses ?? "—"}
+          hint={
+            <>
+              {cards.activeBuses ?? 0} {t("active")}
+            </>
+          }
+        />
         <StatCard label="Inactive / offline" value={`${cards.inactiveBuses ?? 0} / ${cards.offlineBuses ?? 0}`} />
         {showVerification && <StatCard label="Pending verification" value={cards.pendingVehicleVerification ?? "—"} hint="Manual / simulated" />}
         {showVerification && <StatCard label="Suspended vehicles" value={cards.suspendedVehicles ?? "—"} />}
-        <StatCard label="Drivers" value={cards.totalDrivers ?? "—"} hint={`${cards.activeDrivers ?? 0} active`} />
+        <StatCard
+          label="Drivers"
+          value={cards.totalDrivers ?? "—"}
+          hint={
+            <>
+              {cards.activeDrivers ?? 0} {t("active")}
+            </>
+          }
+        />
         {showVerification && <StatCard label="Pending licenses" value={cards.pendingLicense ?? "—"} />}
         <StatCard label="Active routes" value={cards.activeRoutes ?? "—"} />
         <StatCard label="GPS online / stale" value={`${cards.vehiclesOnline ?? 0} / ${cards.vehiclesStale ?? 0}`} />
@@ -246,7 +273,11 @@ export function DashboardView({
         <div>
           <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
             <h2 className="font-display text-base font-semibold tracking-tight">{t("Live monitoring map")}</h2>
-            <span className="text-xs text-[var(--text-muted)]">Bangladesh only · Vehicle logo = live GPS · Ring: green on route · amber warning · red off route · grey stale · SIMULATED GPS</span>
+            <span className="text-xs text-[var(--text-muted)]">
+              {t(
+                "Bangladesh only · Vehicle logo = live GPS · Ring: green on route · amber warning · red off route · grey stale · SIMULATED GPS",
+              )}
+            </span>
           </div>
           <LiveMap buses={buses} routes={routes} />
         </div>
@@ -257,32 +288,45 @@ export function DashboardView({
           <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
             <h3 className="font-display text-base font-semibold tracking-tight">{t("Vehicle monitoring")}</h3>
             <div className="toolbar w-full sm:w-auto">
-              <input className="input" aria-label="Search vehicles" placeholder="Search registration" value={vehicleQ} onChange={(e) => setVehicleQ(e.target.value)} />
-              <select className="input" aria-label="Filter vehicle status" value={vehicleStatus} onChange={(e) => setVehicleStatus(e.target.value)}>
-                <option value="">All statuses</option>
-                <option value="ACTIVE">ACTIVE</option>
-                <option value="INACTIVE">INACTIVE</option>
-                <option value="MAINTENANCE">MAINTENANCE</option>
-                <option value="OFFLINE">OFFLINE</option>
+              <input
+                className="input"
+                aria-label={t("Search vehicles")}
+                placeholder={t("Search registration")}
+                value={vehicleQ}
+                onChange={(e) => setVehicleQ(e.target.value)}
+              />
+              <select
+                className="input"
+                aria-label={t("Filter vehicle status")}
+                value={vehicleStatus}
+                onChange={(e) => setVehicleStatus(e.target.value)}
+              >
+                <option value="">{t("All statuses")}</option>
+                <option value="ACTIVE">{t("ACTIVE")}</option>
+                <option value="INACTIVE">{t("INACTIVE")}</option>
+                <option value="MAINTENANCE">{t("MAINTENANCE")}</option>
+                <option value="OFFLINE">{t("OFFLINE")}</option>
               </select>
             </div>
           </div>
-          {loading && !vehicles.length ? <p className="text-sm text-slate-500">Loading…</p> : !vehicles.length ? (
+          {loading && !vehicles.length ? (
+            <p className="text-sm text-slate-500">{t("Loading…")}</p>
+          ) : !vehicles.length ? (
             <EmptyState title="No vehicles" body="No vehicles match the current filters." />
           ) : (
             <div className="table-wrap">
               <table className="data">
                 <thead>
                   <tr>
-                    <th>Registration</th>
-                    <th>Type</th>
-                    {variant !== "owner" && <th>Operator</th>}
-                    <th>Driver</th>
-                    <th>Route</th>
-                    <th>GPS</th>
-                    <th>Route status</th>
-                    <th>Last update</th>
-                    <th>Vehicle</th>
+                    <th>{t("Registration")}</th>
+                    <th>{t("Type")}</th>
+                    {variant !== "owner" && <th>{t("Operator")}</th>}
+                    <th>{t("Driver")}</th>
+                    <th>{t("Route")}</th>
+                    <th>{t("GPS")}</th>
+                    <th>{t("Route status")}</th>
+                    <th>{t("Last update")}</th>
+                    <th>{t("Vehicle")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -309,28 +353,35 @@ export function DashboardView({
         <section className="card p-4">
           <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
             <h3 className="font-display text-base font-semibold tracking-tight">{t("Driver monitoring")}</h3>
-            <select className="input w-full sm:w-48" aria-label="Filter drivers" value={driverStatus} onChange={(e) => setDriverStatus(e.target.value)}>
-              <option value="">All drivers</option>
-              <option value="ACTIVE">Active</option>
-              <option value="INACTIVE">Inactive</option>
-              <option value="SUSPENDED">Suspended</option>
-              <option value="PENDING">Pending license</option>
-              <option value="VALID">Verified license</option>
-              <option value="EXPIRED">Expired license</option>
+            <select
+              className="input w-full sm:w-48"
+              aria-label={t("Filter drivers")}
+              value={driverStatus}
+              onChange={(e) => setDriverStatus(e.target.value)}
+            >
+              <option value="">{t("All drivers")}</option>
+              <option value="ACTIVE">{t("Active")}</option>
+              <option value="INACTIVE">{t("Inactive")}</option>
+              <option value="SUSPENDED">{t("Suspended")}</option>
+              <option value="PENDING">{t("Pending license")}</option>
+              <option value="VALID">{t("Verified license")}</option>
+              <option value="EXPIRED">{t("Expired license")}</option>
             </select>
           </div>
-          {loading && !drivers.length ? <p className="text-sm text-slate-500">Loading…</p> : !drivers.length ? (
+          {loading && !drivers.length ? (
+            <p className="text-sm text-slate-500">{t("Loading…")}</p>
+          ) : !drivers.length ? (
             <EmptyState title="No drivers" body="No drivers match the current filters." />
           ) : (
             <div className="table-wrap">
               <table className="data">
                 <thead>
                   <tr>
-                    <th>Name</th>
-                    {variant !== "owner" && <th>Operator</th>}
-                    <th>License</th>
-                    <th>Status</th>
-                    <th>Vehicle</th>
+                    <th>{t("Name")}</th>
+                    {variant !== "owner" && <th>{t("Operator")}</th>}
+                    <th>{t("License")}</th>
+                    <th>{t("Status")}</th>
+                    <th>{t("Vehicle")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -354,18 +405,24 @@ export function DashboardView({
       <section className="card p-4">
         <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
           <h3 className="font-display text-base font-semibold tracking-tight">{t("Route overview")}</h3>
-          <input className="input w-full sm:w-56" aria-label="Search routes" placeholder="Search code or name" value={routeQ} onChange={(e) => setRouteQ(e.target.value)} />
+          <input
+            className="input w-full sm:w-56"
+            aria-label={t("Search routes")}
+            placeholder={t("Search code or name")}
+            value={routeQ}
+            onChange={(e) => setRouteQ(e.target.value)}
+          />
         </div>
         {!routeRows.length ? <EmptyState title="No routes" body="No routes are available for this view." /> : (
           <div className="table-wrap">
             <table className="data">
               <thead>
                 <tr>
-                  <th>Code</th>
-                  <th>Name</th>
-                  <th>Origin → Destination</th>
-                  <th>Status</th>
-                  <th>Vehicles</th>
+                  <th>{t("Code")}</th>
+                  <th>{t("Name")}</th>
+                  <th>{t("Origin → Destination")}</th>
+                  <th>{t("Status")}</th>
+                  <th>{t("Vehicles")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -389,7 +446,7 @@ export function DashboardView({
         <section className="card p-4">
           <h3 className="font-display mb-3 text-base font-semibold tracking-tight">{t("Recent alerts / compliance")}</h3>
           {!activity?.alerts.length && !activity?.complianceEvents.length ? (
-            <p className="text-sm text-slate-500">No recent events.</p>
+            <p className="text-sm text-slate-500">{t("No recent events.")}</p>
           ) : (
             <ul className="space-y-2 text-sm">
               {(activity?.alerts ?? []).slice(0, 6).map((a) => (
@@ -409,17 +466,19 @@ export function DashboardView({
         {showAudit && (
           <section className="card p-4">
             <h3 className="font-display mb-3 text-base font-semibold tracking-tight">{t("Recent administrative activity")}</h3>
-            {!activity?.audit.length ? <p className="text-sm text-slate-500">No audit rows.</p> : (
+            {!activity?.audit.length ? <p className="text-sm text-slate-500">{t("No audit rows.")}</p> : (
               <ul className="space-y-2 text-sm">
                 {activity.audit.map((row) => (
-                  <li key={row.id}>{row.action} {row.entity ? `· ${row.entity}` : ""} — {row.actor ?? "system"}</li>
+                  <li key={row.id}>
+                    {row.action} {row.entity ? `· ${row.entity}` : ""} — {row.actor ?? t("system")}
+                  </li>
                 ))}
               </ul>
             )}
           </section>
         )}
         <section className="card p-4">
-          <h3 className="font-display mb-3 text-base font-semibold tracking-tight">Daily trips (7 days)</h3>
+          <h3 className="font-display mb-3 text-base font-semibold tracking-tight">{t("Daily trips (7 days)")}</h3>
           <div className="h-56">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={series?.dailyTrips ?? []}>
@@ -433,7 +492,7 @@ export function DashboardView({
           </div>
         </section>
         <section className="card p-4">
-          <h3 className="font-display mb-3 text-base font-semibold tracking-tight">Speed violations</h3>
+          <h3 className="font-display mb-3 text-base font-semibold tracking-tight">{t("Speed violations")}</h3>
           <div className="h-56">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={series?.speedViolations ?? []}>

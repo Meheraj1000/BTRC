@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
+import { useI18n } from "@/lib/i18n";
 import { EmptyState, ErrorState } from "./StatCard";
 
 export function ResourceTable<T extends Record<string, unknown>>({
@@ -13,6 +14,7 @@ export function ResourceTable<T extends Record<string, unknown>>({
   columns: Array<{ key: string; label: string }>;
   pick?: (raw: unknown) => T[];
 }) {
+  const { t } = useI18n();
   const [rows, setRows] = useState<T[]>([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -30,7 +32,7 @@ export function ResourceTable<T extends Record<string, unknown>>({
   }, [path, pick]);
 
   if (error) return <ErrorState message={error} />;
-  if (loading) return <div className="text-sm text-slate-500">Loading…</div>;
+  if (loading) return <div className="text-sm text-slate-500">{t("Loading…")}</div>;
   if (!rows.length) return <EmptyState title="No records" body="Nothing to display for this view yet." />;
 
   return (
@@ -39,7 +41,7 @@ export function ResourceTable<T extends Record<string, unknown>>({
         <thead>
           <tr>
             {columns.map((c) => (
-              <th key={c.key}>{c.label}</th>
+              <th key={c.key}>{t(c.label)}</th>
             ))}
           </tr>
         </thead>
@@ -47,7 +49,7 @@ export function ResourceTable<T extends Record<string, unknown>>({
           {rows.map((row, i) => (
             <tr key={String(row.id ?? i)}>
               {columns.map((c) => (
-                <td key={c.key}>{formatCell(row[c.key])}</td>
+                <td key={c.key}>{t(formatCell(row[c.key]))}</td>
               ))}
             </tr>
           ))}

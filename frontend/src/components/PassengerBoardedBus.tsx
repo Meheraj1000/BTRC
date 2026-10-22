@@ -7,6 +7,7 @@ import { LiveMap } from "@/components/map/LiveMap";
 import { Badge, ErrorState } from "@/components/StatCard";
 import { api, getToken } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { useI18n } from "@/lib/i18n";
 import type { BusLive } from "@/lib/types";
 
 const SOS_CATEGORIES = [
@@ -55,6 +56,7 @@ type PublicBus = {
 };
 
 export function PassengerBoardedBus({ token }: { token: string }) {
+  const { t } = useI18n();
   const { user, loading: authLoading } = useAuth();
   const [bus, setBus] = useState<PublicBus | null>(null);
   const [error, setError] = useState("");
@@ -145,11 +147,11 @@ export function PassengerBoardedBus({ token }: { token: string }) {
           description,
         }),
       });
-      setMsg("Submitted. Track status under Complaints.");
+      setMsg(t("Submitted. Track status under Complaints."));
       setDescription("");
       setSubject("");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to submit");
+      setError(err instanceof Error ? err.message : t("Unable to submit"));
     } finally {
       setBusy(false);
     }
@@ -203,14 +205,14 @@ export function PassengerBoardedBus({ token }: { token: string }) {
       setEmergencyRef(result.complaintReference);
       setEmergencyMsg(
         result.anonymous
-          ? "SOS recorded for monitoring parties (anonymous QR scan)."
-          : "SOS recorded and sent to all monitoring parties.",
+          ? t("SOS recorded for monitoring parties (anonymous QR scan).")
+          : t("SOS recorded and sent to all monitoring parties."),
       );
       setSosConfirm(false);
       setSosMessage("");
       if (!result.anonymous) setActiveSosStatus("OPEN");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to send emergency");
+      setError(err instanceof Error ? err.message : t("Unable to send emergency"));
       setSosConfirm(false);
     } finally {
       setEmergencyBusy(false);
@@ -224,20 +226,19 @@ export function PassengerBoardedBus({ token }: { token: string }) {
       <div className="mx-auto w-full max-w-2xl space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <p className="text-sm text-[var(--text-secondary)]">
-            Scanned bus QR · details, complaint, and emergency for this vehicle
+            {t("Scanned bus QR · details, complaint, and emergency for this vehicle")}
           </p>
           <Link className="btn btn-ghost text-xs" href="/passenger/scan">
-            Scan another
+            {t("Scan another")}
           </Link>
         </div>
 
         <p className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text-muted)]">
-          GPS is SIMULATED. License numbers and phone numbers are not shown. SOS is an application workflow — not live 999
-          or government dispatch.
+          {t("GPS is SIMULATED. License numbers and phone numbers are not shown. SOS is an application workflow — not live 999 or government dispatch.")}
         </p>
 
         {error && <ErrorState message={error} />}
-        {!bus && !error && <p className="text-sm text-[var(--text-muted)]">Loading vehicle…</p>}
+        {!bus && !error && <p className="text-sm text-[var(--text-muted)]">{t("Loading vehicle…")}</p>}
 
         {bus && (
           <>
@@ -246,8 +247,8 @@ export function PassengerBoardedBus({ token }: { token: string }) {
                 <div>
                   <h2 className="font-display text-xl font-semibold tracking-tight">{bus.registrationNo}</h2>
                   <p className="text-sm text-[var(--text-muted)]">
-                    {(bus.vehicleType ?? "Bus").replaceAll("_", " ")}
-                    {bus.capacity ? ` · ${bus.capacity} seats` : ""}
+                    {(bus.vehicleType ?? t("Bus")).replaceAll("_", " ")}
+                    {bus.capacity ? ` · ${bus.capacity} ${t("seats")}` : ""}
                   </p>
                 </div>
                 <Badge tone={bus.operationalStatus === "ACTIVE" ? "green" : "yellow"}>
@@ -256,25 +257,25 @@ export function PassengerBoardedBus({ token }: { token: string }) {
               </div>
               <dl className="grid gap-2 text-sm sm:grid-cols-2">
                 <div>
-                  <dt className="text-xs text-[var(--text-muted)]">Operator</dt>
+                  <dt className="text-xs text-[var(--text-muted)]">{t("Operator")}</dt>
                   <dd>
                     {bus.company?.name ?? "—"}
                     {bus.company?.city ? ` · ${bus.company.city}` : ""}
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-xs text-[var(--text-muted)]">Make / model</dt>
+                  <dt className="text-xs text-[var(--text-muted)]">{t("Make / model")}</dt>
                   <dd>
                     {[bus.manufacturer, bus.model].filter(Boolean).join(" ") || "—"}
                     {bus.yearOfManufacture ? ` (${bus.yearOfManufacture})` : ""}
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-xs text-[var(--text-muted)]">Registration</dt>
+                  <dt className="text-xs text-[var(--text-muted)]">{t("Registration")}</dt>
                   <dd>{bus.registrationStatus ?? "—"}</dd>
                 </div>
                 <div>
-                  <dt className="text-xs text-[var(--text-muted)]">Fitness / insurance</dt>
+                  <dt className="text-xs text-[var(--text-muted)]">{t("Fitness / insurance")}</dt>
                   <dd>
                     {bus.fitnessStatus ?? "—"} · {bus.insuranceStatus ?? "—"}
                   </dd>
@@ -283,9 +284,9 @@ export function PassengerBoardedBus({ token }: { token: string }) {
             </section>
 
             <section className="card space-y-2 p-4">
-              <h2 className="font-display text-base font-semibold">Route</h2>
+              <h2 className="font-display text-base font-semibold">{t("Route")}</h2>
               {!bus.route ? (
-                <p className="text-sm text-[var(--text-muted)]">No route assigned.</p>
+                <p className="text-sm text-[var(--text-muted)]">{t("No route assigned.")}</p>
               ) : (
                 <div className="text-sm">
                   <div className="font-medium">
@@ -296,34 +297,34 @@ export function PassengerBoardedBus({ token }: { token: string }) {
                   </div>
                   <div className="text-xs text-[var(--text-muted)]">
                     {bus.route.city}
-                    {bus.route.allowedSpeed ? ` · limit ${bus.route.allowedSpeed} km/h` : ""}
+                    {bus.route.allowedSpeed ? ` · ${t("limit")} ${bus.route.allowedSpeed} ${t("km/h")}` : ""}
                   </div>
                 </div>
               )}
             </section>
 
             <section className="card space-y-2 p-4">
-              <h2 className="font-display text-base font-semibold">Driver</h2>
+              <h2 className="font-display text-base font-semibold">{t("Driver")}</h2>
               {!bus.driver ? (
-                <p className="text-sm text-[var(--text-muted)]">No driver assigned.</p>
+                <p className="text-sm text-[var(--text-muted)]">{t("No driver assigned.")}</p>
               ) : (
                 <dl className="grid gap-2 text-sm sm:grid-cols-2">
                   <div>
-                    <dt className="text-xs text-[var(--text-muted)]">Name</dt>
+                    <dt className="text-xs text-[var(--text-muted)]">{t("Name")}</dt>
                     <dd>{bus.driver.name ?? "—"}</dd>
                   </div>
                   <div>
-                    <dt className="text-xs text-[var(--text-muted)]">Duty status</dt>
+                    <dt className="text-xs text-[var(--text-muted)]">{t("Duty status")}</dt>
                     <dd>{bus.driver.status ?? "—"}</dd>
                   </div>
                   <div>
-                    <dt className="text-xs text-[var(--text-muted)]">License status</dt>
+                    <dt className="text-xs text-[var(--text-muted)]">{t("License status")}</dt>
                     <dd>{bus.driver.licenseStatus ?? "—"}</dd>
                   </div>
                   <div>
-                    <dt className="text-xs text-[var(--text-muted)]">Experience</dt>
+                    <dt className="text-xs text-[var(--text-muted)]">{t("Experience")}</dt>
                     <dd>
-                      {bus.driver.experienceYears != null ? `${bus.driver.experienceYears} years` : "—"}
+                      {bus.driver.experienceYears != null ? `${bus.driver.experienceYears} ${t("years")}` : "—"}
                     </dd>
                   </div>
                 </dl>
@@ -332,10 +333,10 @@ export function PassengerBoardedBus({ token }: { token: string }) {
 
             {liveBus && (
               <section className="card space-y-2 p-4">
-                <h2 className="font-display text-base font-semibold">Live location</h2>
+                <h2 className="font-display text-base font-semibold">{t("Live location")}</h2>
                 <p className="text-xs text-[var(--text-muted)]">
-                  {liveBus.trackingState} · {liveBus.speed.toFixed(0)} km/h ·{" "}
-                  {liveBus.timestamp ? new Date(liveBus.timestamp).toLocaleString() : "—"} · SIMULATED
+                  {liveBus.trackingState} · {liveBus.speed.toFixed(0)} {t("km/h")} ·{" "}
+                  {liveBus.timestamp ? new Date(liveBus.timestamp).toLocaleString() : "—"} · {t("SIMULATED")}
                 </p>
                 <LiveMap buses={[liveBus]} />
               </section>
@@ -343,19 +344,20 @@ export function PassengerBoardedBus({ token }: { token: string }) {
 
             <section className="card border-l-4 border-l-[var(--error)] p-4 sm:p-6">
               <h2 className="font-display text-lg font-semibold tracking-tight text-[var(--error)]">
-                Emergency SOS
+                {t("Emergency SOS")}
               </h2>
               <p className="mt-2 text-sm text-[var(--text-secondary)]">
-                Records an SOS in Nirapad Transit for authorized monitors. Does{" "}
-                <strong>not</strong> call 999, police, ambulance, or any government dispatch.
+                {t("Records an SOS in Nirapad Transit for authorized monitors. Does")}{" "}
+                <strong>{t("not")}</strong>{" "}
+                {t("call 999, police, ambulance, or any government dispatch.")}
               </p>
               {activeSosStatus && (
                 <p className="mt-3 rounded-xl bg-[var(--error-bg)] px-3 py-2 text-sm text-[var(--error)]">
-                  You already have an active SOS ({activeSosStatus}). A new press reuses that record.
+                  {t("You already have an active SOS (")}{activeSosStatus}{t("). A new press reuses that record.")}
                 </p>
               )}
               <label className="mt-4 block text-sm font-medium" htmlFor="board-sos-cat">
-                Category
+                {t("Category")}
               </label>
               <select
                 id="board-sos-cat"
@@ -365,7 +367,7 @@ export function PassengerBoardedBus({ token }: { token: string }) {
               >
                 {SOS_CATEGORIES.map(([value, label]) => (
                   <option key={value} value={value}>
-                    {label}
+                    {t(label)}
                   </option>
                 ))}
               </select>
@@ -373,8 +375,8 @@ export function PassengerBoardedBus({ token }: { token: string }) {
                 className="input mt-3 min-h-24"
                 value={sosMessage}
                 onChange={(e) => setSosMessage(e.target.value)}
-                placeholder="Optional details for monitors"
-                aria-label="SOS details"
+                placeholder={t("Optional details for monitors")}
+                aria-label={t("SOS details")}
               />
               {!sosConfirm ? (
                 <button
@@ -382,13 +384,12 @@ export function PassengerBoardedBus({ token }: { token: string }) {
                   className="btn btn-danger mt-4 w-full py-3 text-base"
                   onClick={() => setSosConfirm(true)}
                 >
-                  Trigger SOS
+                  {t("Trigger SOS")}
                 </button>
               ) : (
                 <div className="mt-4 space-y-2 rounded-xl bg-[var(--error-bg)] p-3">
                   <p className="text-sm font-medium text-[var(--error)]">
-                    Confirm: record an application SOS for {bus.registrationNo}? Alerts monitoring desks only — not live
-                    999.
+                    {t("Confirm: record an application SOS for ")}{bus.registrationNo}{t("? Alerts monitoring desks only — not live 999.")}
                   </p>
                   <div className="flex flex-col gap-2 sm:flex-row">
                     <button
@@ -397,7 +398,7 @@ export function PassengerBoardedBus({ token }: { token: string }) {
                       disabled={emergencyBusy}
                       onClick={() => void sendEmergency()}
                     >
-                      {emergencyBusy ? "Recording…" : "Confirm SOS"}
+                      {emergencyBusy ? t("Recording…") : t("Confirm SOS")}
                     </button>
                     <button
                       type="button"
@@ -405,7 +406,7 @@ export function PassengerBoardedBus({ token }: { token: string }) {
                       disabled={emergencyBusy}
                       onClick={() => setSosConfirm(false)}
                     >
-                      Back
+                      {t("Back")}
                     </button>
                   </div>
                 </div>
@@ -415,37 +416,36 @@ export function PassengerBoardedBus({ token }: { token: string }) {
                   className="mt-4 rounded-xl border border-[var(--border)] bg-[var(--surface-secondary)] p-3 text-sm"
                   role="status"
                 >
-                  <div className="font-semibold text-[var(--error)]">SOS recorded</div>
+                  <div className="font-semibold text-[var(--error)]">{t("SOS recorded")}</div>
                   <div>{emergencyMsg}</div>
-                  {emergencyRef && <div>Reference: {emergencyRef}</div>}
+                  {emergencyRef && <div>{t("Reference:")} {emergencyRef}</div>}
                   <p className="mt-2 text-xs text-[var(--text-muted)]">
-                    Notified: Super Admin, Government, Police, BRTA, operator, and assigned driver (application
-                    workflow).
+                    {t("Notified: Super Admin, Government, Police, BRTA, operator, and assigned driver (application workflow).")}
                   </p>
                   <Link className="btn btn-ghost mt-2" href="/passenger/sos">
-                    Open my SOS
+                    {t("Open my SOS")}
                   </Link>
                 </div>
               )}
             </section>
 
             <section className="card space-y-3 p-4 sm:p-6">
-              <h2 className="font-display text-base font-semibold">Lodge a complaint</h2>
+              <h2 className="font-display text-base font-semibold">{t("Lodge a complaint")}</h2>
               {authLoading ? (
-                <p className="text-sm text-[var(--text-muted)]">Checking session…</p>
+                <p className="text-sm text-[var(--text-muted)]">{t("Checking session…")}</p>
               ) : !getToken() || !isPassenger ? (
                 <div className="space-y-3 text-sm">
                   <p className="text-[var(--text-secondary)]">
-                    Sign in with a passenger account to submit a complaint about this vehicle.
+                    {t("Sign in with a passenger account to submit a complaint about this vehicle.")}
                   </p>
                   <Link className="btn btn-primary" href={`/login?next=${encodeURIComponent(loginNext)}`}>
-                    Sign in
+                    {t("Sign in")}
                   </Link>
                 </div>
               ) : (
                 <form className="space-y-3" onSubmit={submitReport}>
                   <label className="block text-sm font-medium" htmlFor="board-cat">
-                    Type
+                    {t("Type")}
                   </label>
                   <select
                     id="board-cat"
@@ -453,25 +453,25 @@ export function PassengerBoardedBus({ token }: { token: string }) {
                     value={complaintCategory}
                     onChange={(e) => setComplaintCategory(e.target.value)}
                   >
-                    <option value="OTHER">General inquiry</option>
-                    <option value="OVERSPEEDING">Overspeeding / service</option>
-                    <option value="DRIVER_BEHAVIOR">Driver behavior</option>
-                    <option value="ROUTE">Route problem</option>
-                    <option value="BUS_CONDITION">Vehicle condition</option>
-                    <option value="HARASSMENT_SECURITY">Safety issue</option>
+                    <option value="OTHER">{t("General inquiry")}</option>
+                    <option value="OVERSPEEDING">{t("Overspeeding / service")}</option>
+                    <option value="DRIVER_BEHAVIOR">{t("Driver behavior")}</option>
+                    <option value="ROUTE">{t("Route problem")}</option>
+                    <option value="BUS_CONDITION">{t("Vehicle condition")}</option>
+                    <option value="HARASSMENT_SECURITY">{t("Safety issue")}</option>
                   </select>
                   <label className="block text-sm font-medium" htmlFor="board-subject">
-                    Subject (optional)
+                    {t("Subject (optional)")}
                   </label>
                   <input
                     id="board-subject"
                     className="input"
                     value={subject}
                     onChange={(e) => setSubject(e.target.value)}
-                    placeholder="Short summary"
+                    placeholder={t("Short summary")}
                   />
                   <label className="block text-sm font-medium" htmlFor="board-desc">
-                    Details
+                    {t("Details")}
                   </label>
                   <textarea
                     id="board-desc"
@@ -480,14 +480,14 @@ export function PassengerBoardedBus({ token }: { token: string }) {
                     minLength={8}
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Describe your complaint or inquiry."
+                    placeholder={t("Describe your complaint or inquiry.")}
                   />
                   <button className="btn btn-primary w-full" disabled={busy} type="submit">
-                    {busy ? "Submitting…" : "Submit complaint"}
+                    {busy ? t("Submitting…") : t("Submit complaint")}
                   </button>
                   {msg && <p className="text-sm text-emerald-700">{msg}</p>}
                   <Link className="btn btn-ghost w-full" href={`/passenger/complaints?busId=${bus.id}`}>
-                    View my complaints
+                    {t("View my complaints")}
                   </Link>
                 </form>
               )}

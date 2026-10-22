@@ -5,6 +5,7 @@ import { AppShell } from "@/components/AppShell";
 import { NoticeVehicleDetail } from "@/components/NoticeVehicleDetail";
 import { Badge, EmptyState, ErrorState } from "@/components/StatCard";
 import { api } from "@/lib/api";
+import { useI18n } from "@/lib/i18n";
 import { isEmergencyNotice } from "@/lib/inbox";
 import { getSocket } from "@/lib/socket";
 import type { RoleCode } from "@/lib/types";
@@ -31,6 +32,7 @@ export function NotificationsInbox({
   allow: RoleCode[];
   title?: string;
 }) {
+  const { t } = useI18n();
   const [items, setItems] = useState<NoteRow[]>([]);
   const [error, setError] = useState("");
   const [filter, setFilter] = useState<"all" | "unread" | "emergency">("all");
@@ -71,21 +73,21 @@ export function NotificationsInbox({
   }
 
   return (
-    <AppShell allow={allow} title={title}>
+    <AppShell allow={allow} title={t(title)}>
       {error && <ErrorState message={error} />}
       <p className="mb-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text-muted)]">
-        Click a notice to open bus and driver details with the vehicle&apos;s live location when a bus is linked.
+        {t("Click a notice to open bus and driver details with the vehicle's live location when a bus is linked.")}
       </p>
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
         <div className="toolbar">
           <button type="button" className={`btn ${filter === "all" ? "btn-primary" : "btn-ghost"}`} onClick={() => setFilter("all")}>
-            All notices
+            {t("All notices")}
           </button>
           <button type="button" className={`btn ${filter === "unread" ? "btn-primary" : "btn-ghost"}`} onClick={() => setFilter("unread")}>
-            Unread
+            {t("Unread")}
           </button>
           <button type="button" className={`btn ${filter === "emergency" ? "btn-danger" : "btn-ghost"}`} onClick={() => setFilter("emergency")}>
-            Emergencies
+            {t("Emergencies")}
           </button>
         </div>
         <button
@@ -96,7 +98,7 @@ export function NotificationsInbox({
             load();
           }}
         >
-          Mark all read
+          {t("Mark all read")}
         </button>
       </div>
 
@@ -128,21 +130,21 @@ export function NotificationsInbox({
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <div className="min-w-0">
                       <div className={`font-semibold ${emergency ? "text-[var(--error)]" : ""}`}>
-                        {emergency ? "Emergency · " : ""}
+                        {emergency ? t("Emergency · ") : ""}
                         {n.title}
                       </div>
                       <div className={`mt-0.5 text-xs ${emergency ? "text-[var(--error)]/80" : "text-[var(--text-muted)]"}`}>
                         {n.type}
                         {" · "}
                         {new Date(n.createdAt).toLocaleString()}
-                        {linked ? " · Tap for bus, driver & live map" : ""}
+                        {linked ? t(" · Tap for bus, driver & live map") : ""}
                       </div>
                     </div>
                     <div className="flex flex-wrap gap-1">
                       {emergency && <Badge tone="red">EMERGENCY</Badge>}
-                      {linked && <Badge tone={emergency ? "red" : "teal"}>Vehicle</Badge>}
+                      {linked && <Badge tone={emergency ? "red" : "teal"}>{t("Vehicle")}</Badge>}
                       <Badge tone={n.readAt ? "slate" : emergency ? "red" : "yellow"}>
-                        {n.readAt ? "Read" : "Unread"}
+                        {n.readAt ? t("Read") : t("Unread")}
                       </Badge>
                     </div>
                   </div>

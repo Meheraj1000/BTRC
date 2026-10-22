@@ -122,11 +122,11 @@ export default function PublicBusQrPage() {
           description,
         }),
       });
-      setMsg("Submitted. Track status under Passenger → Complaints.");
+      setMsg(t("Submitted. Track status under Passenger → Complaints."));
       setDescription("");
       setSubject("");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to submit");
+      setError(err instanceof Error ? err.message : t("Unable to submit"));
     } finally {
       setBusy(false);
     }
@@ -180,14 +180,14 @@ export default function PublicBusQrPage() {
       setEmergencyRef(result.complaintReference);
       setEmergencyMsg(
         result.anonymous
-          ? "SOS recorded for monitoring parties (anonymous QR scan)."
-          : "SOS recorded and sent to all monitoring parties.",
+          ? t("SOS recorded for monitoring parties (anonymous QR scan).")
+          : t("SOS recorded and sent to all monitoring parties."),
       );
       setSosConfirm(false);
       setSosMessage("");
       if (!result.anonymous) setActiveSosStatus("OPEN");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to send emergency");
+      setError(err instanceof Error ? err.message : t("Unable to send emergency"));
       setSosConfirm(false);
     } finally {
       setEmergencyBusy(false);
@@ -206,11 +206,11 @@ export default function PublicBusQrPage() {
         </div>
 
         <p className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text-muted)]">
-          Public vehicle information from a bus QR code. GPS is SIMULATED. License numbers and phone numbers are not shown.
+          {t("Public vehicle information from a bus QR code. GPS is SIMULATED. License numbers and phone numbers are not shown.")}
         </p>
 
         {error && <ErrorState message={error} />}
-        {!bus && !error && <p className="text-sm text-[var(--text-muted)]">Loading vehicle…</p>}
+        {!bus && !error && <p className="text-sm text-[var(--text-muted)]">{t("Loading vehicle…")}</p>}
 
         {bus && (
           <>
@@ -219,38 +219,39 @@ export default function PublicBusQrPage() {
                 {t("Emergency SOS")}
               </h1>
               <p className="mt-2 text-sm text-[var(--text-secondary)]">
-                This records an SOS in the Nirapad Transit application for authorized monitoring accounts.
-                It does <strong>not</strong> call 999, police, ambulance, or any government dispatch service.
+                {t("This records an SOS in the Nirapad Transit application for authorized monitoring accounts. It does")}{" "}
+                <strong>{t("not")}</strong>{" "}
+                {t("call 999, police, ambulance, or any government dispatch service.")}
               </p>
               <p className="mt-2 text-xs text-[var(--text-muted)]">
-                Vehicle: <strong>{bus.registrationNo}</strong>
+                {t("Vehicle:")} <strong>{bus.registrationNo}</strong>
                 {bus.route?.code ? ` · ${bus.route.code}` : ""}
               </p>
               {activeSosStatus && (
                 <p className="mt-3 rounded-xl bg-[var(--error-bg)] px-3 py-2 text-sm text-[var(--error)]">
-                  You already have an active SOS ({activeSosStatus}). A new press reuses that record.
+                  {t("You already have an active SOS (")}{activeSosStatus}{t("). A new press reuses that record.")}
                 </p>
               )}
               <label className="mt-4 block text-sm font-medium text-[var(--text-primary)]" htmlFor="qr-sos-cat">
-                Category
+                {t("Category")}
               </label>
               <select
                 id="qr-sos-cat"
                 className="input mt-1"
                 value={sosCategory}
                 onChange={(e) => setSosCategory(e.target.value as typeof sosCategory)}
-                aria-label="SOS category"
+                aria-label={t("SOS category")}
               >
                 {SOS_CATEGORIES.map(([value, label]) => (
-                  <option key={value} value={value}>{label}</option>
+                  <option key={value} value={value}>{t(label)}</option>
                 ))}
               </select>
               <textarea
                 className="input mt-3 min-h-24"
                 value={sosMessage}
                 onChange={(e) => setSosMessage(e.target.value)}
-                placeholder="Optional details for monitors"
-                aria-label="SOS details"
+                placeholder={t("Optional details for monitors")}
+                aria-label={t("SOS details")}
               />
               {!sosConfirm ? (
                 <button
@@ -258,12 +259,12 @@ export default function PublicBusQrPage() {
                   className="btn btn-danger mt-4 w-full py-3 text-base"
                   onClick={() => setSosConfirm(true)}
                 >
-                  Trigger SOS
+                  {t("Trigger SOS")}
                 </button>
               ) : (
                 <div className="mt-4 space-y-2 rounded-xl bg-[var(--error-bg)] p-3">
                   <p className="text-sm font-medium text-[var(--error)]">
-                    Confirm: record an application SOS for {bus.registrationNo}? This alerts monitoring desks only — not live 999.
+                    {t("Confirm: record an application SOS for ")}{bus.registrationNo}{t("? This alerts monitoring desks only — not live 999.")}
                   </p>
                   <div className="flex flex-col gap-2 sm:flex-row">
                     <button
@@ -272,7 +273,7 @@ export default function PublicBusQrPage() {
                       disabled={emergencyBusy}
                       onClick={() => void sendEmergency()}
                     >
-                      {emergencyBusy ? "Recording…" : "Confirm SOS"}
+                      {emergencyBusy ? t("Recording…") : t("Confirm SOS")}
                     </button>
                     <button
                       type="button"
@@ -280,18 +281,18 @@ export default function PublicBusQrPage() {
                       disabled={emergencyBusy}
                       onClick={() => setSosConfirm(false)}
                     >
-                      Back
+                      {t("Back")}
                     </button>
                   </div>
                 </div>
               )}
               {emergencyMsg && (
                 <div className="mt-4 rounded-xl border border-[var(--border)] bg-[var(--surface-secondary)] p-3 text-sm" role="status">
-                  <div className="font-semibold text-[var(--error)]">SOS recorded</div>
+                  <div className="font-semibold text-[var(--error)]">{t("SOS recorded")}</div>
                   <div>{emergencyMsg}</div>
-                  {emergencyRef && <div>Reference: {emergencyRef}</div>}
+                  {emergencyRef && <div>{t("Reference:")} {emergencyRef}</div>}
                   <p className="mt-2 text-xs text-[var(--text-muted)]">
-                    Notified: Super Admin, Government, Police, BRTA, operator, and assigned driver (application workflow).
+                    {t("Notified: Super Admin, Government, Police, BRTA, operator, and assigned driver (application workflow).")}
                   </p>
                 </div>
               )}
@@ -302,8 +303,8 @@ export default function PublicBusQrPage() {
                 <div>
                   <h2 className="font-display text-xl font-semibold tracking-tight">{bus.registrationNo}</h2>
                   <p className="text-sm text-[var(--text-muted)]">
-                    {(bus.vehicleType ?? "Bus").replaceAll("_", " ")}
-                    {bus.capacity ? ` · ${bus.capacity} seats` : ""}
+                    {(bus.vehicleType ?? t("Bus")).replaceAll("_", " ")}
+                    {bus.capacity ? ` · ${bus.capacity} ${t("seats")}` : ""}
                   </p>
                 </div>
                 <Badge tone={bus.operationalStatus === "ACTIVE" ? "green" : "yellow"}>
@@ -311,22 +312,22 @@ export default function PublicBusQrPage() {
                 </Badge>
               </div>
               <dl className="grid gap-2 text-sm sm:grid-cols-2">
-                <div><dt className="text-xs text-[var(--text-muted)]">Operator</dt><dd>{bus.company?.name ?? "—"}{bus.company?.city ? ` · ${bus.company.city}` : ""}</dd></div>
-                <div><dt className="text-xs text-[var(--text-muted)]">Make / model</dt><dd>{[bus.manufacturer, bus.model].filter(Boolean).join(" ") || "—"}{bus.yearOfManufacture ? ` (${bus.yearOfManufacture})` : ""}</dd></div>
-                <div><dt className="text-xs text-[var(--text-muted)]">Registration</dt><dd>{bus.registrationStatus ?? "—"}</dd></div>
-                <div><dt className="text-xs text-[var(--text-muted)]">Fitness / insurance</dt><dd>{bus.fitnessStatus ?? "—"} · {bus.insuranceStatus ?? "—"}</dd></div>
+                <div><dt className="text-xs text-[var(--text-muted)]">{t("Operator")}</dt><dd>{bus.company?.name ?? "—"}{bus.company?.city ? ` · ${bus.company.city}` : ""}</dd></div>
+                <div><dt className="text-xs text-[var(--text-muted)]">{t("Make / model")}</dt><dd>{[bus.manufacturer, bus.model].filter(Boolean).join(" ") || "—"}{bus.yearOfManufacture ? ` (${bus.yearOfManufacture})` : ""}</dd></div>
+                <div><dt className="text-xs text-[var(--text-muted)]">{t("Registration")}</dt><dd>{bus.registrationStatus ?? "—"}</dd></div>
+                <div><dt className="text-xs text-[var(--text-muted)]">{t("Fitness / insurance")}</dt><dd>{bus.fitnessStatus ?? "—"} · {bus.insuranceStatus ?? "—"}</dd></div>
               </dl>
             </section>
 
             <section className="card space-y-2 p-4">
               <h2 className="font-display text-base font-semibold">{t("Route")}</h2>
               {!bus.route ? (
-                <p className="text-sm text-[var(--text-muted)]">No route assigned.</p>
+                <p className="text-sm text-[var(--text-muted)]">{t("No route assigned.")}</p>
               ) : (
                 <div className="text-sm">
                   <div className="font-medium">{bus.route.code} · {bus.route.name}</div>
                   <div className="text-[var(--text-secondary)]">{bus.route.startName} → {bus.route.endName}</div>
-                  <div className="text-xs text-[var(--text-muted)]">{bus.route.city}{bus.route.allowedSpeed ? ` · limit ${bus.route.allowedSpeed} km/h` : ""}</div>
+                  <div className="text-xs text-[var(--text-muted)]">{bus.route.city}{bus.route.allowedSpeed ? ` · ${t("limit")} ${bus.route.allowedSpeed} ${t("km/h")}` : ""}</div>
                 </div>
               )}
             </section>
@@ -334,65 +335,65 @@ export default function PublicBusQrPage() {
             <section className="card space-y-2 p-4">
               <h2 className="font-display text-base font-semibold">{t("Driver")}</h2>
               {!bus.driver ? (
-                <p className="text-sm text-[var(--text-muted)]">No driver assigned.</p>
+                <p className="text-sm text-[var(--text-muted)]">{t("No driver assigned.")}</p>
               ) : (
                 <dl className="grid gap-2 text-sm sm:grid-cols-2">
-                  <div><dt className="text-xs text-[var(--text-muted)]">Name</dt><dd>{bus.driver.name ?? "—"}</dd></div>
-                  <div><dt className="text-xs text-[var(--text-muted)]">Duty status</dt><dd>{bus.driver.status ?? "—"}</dd></div>
-                  <div><dt className="text-xs text-[var(--text-muted)]">License status</dt><dd>{bus.driver.licenseStatus ?? "—"}</dd></div>
-                  <div><dt className="text-xs text-[var(--text-muted)]">Experience</dt><dd>{bus.driver.experienceYears != null ? `${bus.driver.experienceYears} years` : "—"}</dd></div>
+                  <div><dt className="text-xs text-[var(--text-muted)]">{t("Name")}</dt><dd>{bus.driver.name ?? "—"}</dd></div>
+                  <div><dt className="text-xs text-[var(--text-muted)]">{t("Duty status")}</dt><dd>{bus.driver.status ?? "—"}</dd></div>
+                  <div><dt className="text-xs text-[var(--text-muted)]">{t("License status")}</dt><dd>{bus.driver.licenseStatus ?? "—"}</dd></div>
+                  <div><dt className="text-xs text-[var(--text-muted)]">{t("Experience")}</dt><dd>{bus.driver.experienceYears != null ? `${bus.driver.experienceYears} ${t("years")}` : "—"}</dd></div>
                 </dl>
               )}
             </section>
 
             {bus.latestLoc && (
               <section className="card space-y-1 p-4 text-sm">
-                <h2 className="font-display text-base font-semibold">Last known GPS</h2>
-                <div>{bus.latestLoc.trackingState ?? "ONLINE"} · {Number(bus.latestLoc.speed).toFixed(0)} km/h</div>
+                <h2 className="font-display text-base font-semibold">{t("Last known GPS")}</h2>
+                <div>{bus.latestLoc.trackingState ?? "ONLINE"} · {Number(bus.latestLoc.speed).toFixed(0)} {t("km/h")}</div>
                 <div className="text-xs text-[var(--text-muted)]">
                   {Number(bus.latestLoc.latitude).toFixed(5)}, {Number(bus.latestLoc.longitude).toFixed(5)}
                   {" · "}
                   {new Date(bus.latestLoc.timestamp).toLocaleString()}
-                  {" · SIMULATED"}
+                  {" · "}{t("SIMULATED")}
                 </div>
               </section>
             )}
 
             <section className="card space-y-3 p-4">
-              <h2 className="font-display text-base font-semibold">Complaint or inquiry</h2>
+              <h2 className="font-display text-base font-semibold">{t("Complaint or inquiry")}</h2>
               {authLoading ? (
-                <p className="text-sm text-[var(--text-muted)]">Checking session…</p>
+                <p className="text-sm text-[var(--text-muted)]">{t("Checking session…")}</p>
               ) : !getToken() || !isPassenger ? (
                 <div className="space-y-3 text-sm">
                   <p className="text-[var(--text-secondary)]">
-                    Sign in with a passenger account to submit a complaint or inquiry about this vehicle.
+                    {t("Sign in with a passenger account to submit a complaint or inquiry about this vehicle.")}
                   </p>
                   <div className="flex flex-col gap-2 sm:flex-row">
                     <Link className="btn btn-primary w-full sm:w-auto" href={`/login?next=${encodeURIComponent(nextPath)}`}>
-                      Sign in
+                      {t("Sign in")}
                     </Link>
                     <Link className="btn btn-ghost w-full sm:w-auto" href={`/register?next=${encodeURIComponent(nextPath)}`}>
-                      Passenger register
+                      {t("Passenger register")}
                     </Link>
                     <Link className="btn btn-ghost w-full sm:w-auto" href={`/passenger/complaints?busId=${bus.id}`}>
-                      Open complaints desk
+                      {t("Open complaints desk")}
                     </Link>
                   </div>
                 </div>
               ) : (
                 <form className="space-y-3" onSubmit={submitReport}>
-                  <label className="block text-sm font-medium" htmlFor="qr-cat">Type</label>
+                  <label className="block text-sm font-medium" htmlFor="qr-cat">{t("Type")}</label>
                   <select id="qr-cat" className="input" value={complaintCategory} onChange={(e) => setComplaintCategory(e.target.value)}>
-                    <option value="OTHER">General inquiry</option>
-                    <option value="OVERSPEEDING">Overspeeding / service</option>
-                    <option value="DRIVER_BEHAVIOR">Driver behavior</option>
-                    <option value="ROUTE">Route problem</option>
-                    <option value="BUS_CONDITION">Vehicle condition</option>
-                    <option value="HARASSMENT_SECURITY">Safety issue</option>
+                    <option value="OTHER">{t("General inquiry")}</option>
+                    <option value="OVERSPEEDING">{t("Overspeeding / service")}</option>
+                    <option value="DRIVER_BEHAVIOR">{t("Driver behavior")}</option>
+                    <option value="ROUTE">{t("Route problem")}</option>
+                    <option value="BUS_CONDITION">{t("Vehicle condition")}</option>
+                    <option value="HARASSMENT_SECURITY">{t("Safety issue")}</option>
                   </select>
-                  <label className="block text-sm font-medium" htmlFor="qr-subject">Subject (optional)</label>
-                  <input id="qr-subject" className="input" value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Short summary" />
-                  <label className="block text-sm font-medium" htmlFor="qr-desc">Details</label>
+                  <label className="block text-sm font-medium" htmlFor="qr-subject">{t("Subject (optional)")}</label>
+                  <input id="qr-subject" className="input" value={subject} onChange={(e) => setSubject(e.target.value)} placeholder={t("Short summary")} />
+                  <label className="block text-sm font-medium" htmlFor="qr-desc">{t("Details")}</label>
                   <textarea
                     id="qr-desc"
                     className="input min-h-28"
@@ -400,10 +401,10 @@ export default function PublicBusQrPage() {
                     minLength={8}
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Describe your complaint or inquiry. Do not include unnecessary personal data."
+                    placeholder={t("Describe your complaint or inquiry. Do not include unnecessary personal data.")}
                   />
                   <button className="btn btn-primary w-full" disabled={busy} type="submit">
-                    {busy ? "Submitting…" : "Submit"}
+                    {busy ? t("Submitting…") : t("Submit")}
                   </button>
                   {msg && <p className="text-sm text-emerald-700">{msg}</p>}
                 </form>

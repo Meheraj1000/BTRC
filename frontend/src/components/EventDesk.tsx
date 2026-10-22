@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
+import { useI18n } from "@/lib/i18n";
 import { getSocket } from "@/lib/socket";
 import { Badge, EmptyState, ErrorState } from "./StatCard";
 
@@ -28,6 +29,15 @@ function tone(value?: string) {
   return "slate" as const;
 }
 
+const EVENT_TYPES = ["ROUTE_DEVIATION", "OVERSPEED", "SOS", "ACCIDENT", "SYSTEM"] as const;
+const EVENT_TYPE_LABELS: Record<(typeof EVENT_TYPES)[number], string> = {
+  ROUTE_DEVIATION: "Route deviation",
+  OVERSPEED: "Overspeed",
+  SOS: "SOS",
+  ACCIDENT: "Accident",
+  SYSTEM: "System",
+};
+
 export function EventDesk({
   canManage = false,
   path = "/alerts",
@@ -35,6 +45,7 @@ export function EventDesk({
   canManage?: boolean;
   path?: string;
 }) {
+  const { t } = useI18n();
   const [items, setItems] = useState<OpsEvent[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -91,52 +102,49 @@ export function EventDesk({
     <div className="space-y-3">
       {error && <ErrorState message={error} />}
       <p className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text-muted)]">
-        Operational events use the existing Alert record. Severity is rule-based (not AI). SOS rows here are the companion alert; the emergency desk owns the SOS lifecycle. This is not a live dispatch feed.
+        {t("Operational events use the existing Alert record. Severity is rule-based (not AI). SOS rows here are the companion alert; the emergency desk owns the SOS lifecycle. This is not a live dispatch feed.")}
       </p>
       <div className="card toolbar p-3">
-        <input className="input" aria-label="Search events" placeholder="Registration or message" value={q} onChange={(e) => setQ(e.target.value)} />
-        <select className="input sm:w-40" aria-label="Filter event type" value={type} onChange={(e) => setType(e.target.value)}>
-          <option value="">All types</option>
-          <option value="ROUTE_DEVIATION">Route deviation</option>
-          <option value="OVERSPEED">Overspeed</option>
-          <option value="SOS">SOS</option>
-          <option value="ACCIDENT">Accident</option>
-          <option value="SYSTEM">System</option>
+        <input className="input" aria-label={t("Search events")} placeholder={t("Registration or message")} value={q} onChange={(e) => setQ(e.target.value)} />
+        <select className="input sm:w-40" aria-label={t("Filter event type")} value={type} onChange={(e) => setType(e.target.value)}>
+          <option value="">{t("All types")}</option>
+          {EVENT_TYPES.map((ev) => (
+            <option key={ev} value={ev}>{t(EVENT_TYPE_LABELS[ev])}</option>
+          ))}
         </select>
-        <select className="input sm:w-36" aria-label="Filter severity" value={severity} onChange={(e) => setSeverity(e.target.value)}>
-          <option value="">All severity</option>
-          <option value="LOW">LOW</option>
-          <option value="MEDIUM">MEDIUM</option>
-          <option value="HIGH">HIGH</option>
-          <option value="CRITICAL">CRITICAL</option>
+        <select className="input sm:w-36" aria-label={t("Filter severity")} value={severity} onChange={(e) => setSeverity(e.target.value)}>
+          <option value="">{t("All severity")}</option>
+          {["LOW", "MEDIUM", "HIGH", "CRITICAL"].map((s) => (
+            <option key={s} value={s}>{t(s)}</option>
+          ))}
         </select>
-        <select className="input sm:w-40" aria-label="Filter status" value={status} onChange={(e) => setStatus(e.target.value)}>
-          <option value="">All status</option>
-          <option value="OPEN">OPEN</option>
-          <option value="ACKNOWLEDGED">ACKNOWLEDGED</option>
-          <option value="RESOLVED">RESOLVED</option>
+        <select className="input sm:w-40" aria-label={t("Filter status")} value={status} onChange={(e) => setStatus(e.target.value)}>
+          <option value="">{t("All status")}</option>
+          {["OPEN", "ACKNOWLEDGED", "RESOLVED"].map((s) => (
+            <option key={s} value={s}>{t(s)}</option>
+          ))}
         </select>
       </div>
-      {loading && !items.length ? <p className="text-sm text-slate-500">Loading…</p> : !items.length ? (
+      {loading && !items.length ? <p className="text-sm text-slate-500">{t("Loading…")}</p> : !items.length ? (
         <EmptyState title="No events" body="No operational events match the current filters." />
       ) : (
         <div className="table-wrap">
           <table className="data">
             <thead>
               <tr>
-                <th>Type</th>
-                <th>Severity</th>
-                <th>Vehicle</th>
-                <th>Route</th>
-                <th>Message</th>
-                <th>Status</th>
-                {canManage && <th>Action</th>}
+                <th>{t("Type")}</th>
+                <th>{t("Severity")}</th>
+                <th>{t("Vehicle")}</th>
+                <th>{t("Route")}</th>
+                <th>{t("Message")}</th>
+                <th>{t("Status")}</th>
+                {canManage && <th>{t("Action")}</th>}
               </tr>
             </thead>
             <tbody>
               {items.map((row) => (
                 <tr key={row.id}>
-                  <td>{row.type}</td>
+                  <td>{t(EVENT_TYPE_LABELS[row.type as keyof typeof EVENT_TYPE_LABELS] ?? row.type)}</td>
                   <td><Badge tone={tone(row.severity)}>{row.severity}</Badge></td>
                   <td>{row.registrationNo ?? "—"}</td>
                   <td>{row.routeCode ?? "—"}</td>
@@ -145,8 +153,8 @@ export function EventDesk({
                   {canManage && (
                     <td>
                       <div className="flex flex-wrap gap-1">
-                        {row.status === "OPEN" && <button type="button" className="btn btn-ghost px-2 py-1 text-xs" onClick={() => updateStatus(row.id, "ACKNOWLEDGED")}>Ack</button>}
-                        {row.status !== "RESOLVED" && <button type="button" className="btn btn-primary px-2 py-1 text-xs" onClick={() => updateStatus(row.id, "RESOLVED")}>Resolve</button>}
+                        {row.status === "OPEN" && <button type="button" className="btn btn-ghost px-2 py-1 text-xs" onClick={() => updateStatus(row.id, "ACKNOWLEDGED")}>{t("Ack")}</button>}
+                        {row.status !== "RESOLVED" && <button type="button" className="btn btn-primary px-2 py-1 text-xs" onClick={() => updateStatus(row.id, "RESOLVED")}>{t("Resolve")}</button>}
                       </div>
                     </td>
                   )}
@@ -157,11 +165,11 @@ export function EventDesk({
         </div>
       )}
       <div className="pager">
-        <span>{total} events</span>
+        <span>{total} {t("events")}</span>
         <div className="pager-actions">
-          <button type="button" className="btn btn-ghost" disabled={page <= 1} onClick={() => setPage(page - 1)}>Previous</button>
-          <span className="self-center">Page {page} / {pages}</span>
-          <button type="button" className="btn btn-ghost" disabled={page >= pages} onClick={() => setPage(page + 1)}>Next</button>
+          <button type="button" className="btn btn-ghost" disabled={page <= 1} onClick={() => setPage(page - 1)}>{t("Previous")}</button>
+          <span className="self-center">{t("Page")} {page} / {pages}</span>
+          <button type="button" className="btn btn-ghost" disabled={page >= pages} onClick={() => setPage(page + 1)}>{t("Next")}</button>
         </div>
       </div>
     </div>

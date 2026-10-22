@@ -12,6 +12,7 @@ import {
   BANGLADESH_SW,
   isInBangladesh,
 } from "@/lib/geo/bangladesh";
+import { useI18n } from "@/lib/i18n";
 import type { BusLive } from "@/lib/types";
 
 type RouteLine = {
@@ -116,6 +117,7 @@ export default function LiveMapInner({
   userLocation?: { lat: number; lng: number } | null;
   sosLocation?: { lat: number; lng: number; label?: string } | null;
 }) {
+  const { t } = useI18n();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [viewReady, setViewReady] = useState(false);
 
@@ -201,12 +203,12 @@ export default function LiveMapInner({
               position={[bdUser.lat, bdUser.lng]}
               icon={L.divIcon({
                 className: "",
-                html: `<div class="bus-marker" style="background:${brand.primary}">You</div>`,
+                html: `<div class="bus-marker" style="background:${brand.primary}">${t("You")}</div>`,
                 iconSize: [34, 34],
                 iconAnchor: [17, 17],
               })}
             >
-              <Popup>Your current location</Popup>
+              <Popup>{t("Your current location")}</Popup>
             </Marker>
           )}
           {bdSos && (
@@ -214,12 +216,12 @@ export default function LiveMapInner({
               position={[bdSos.lat, bdSos.lng]}
               icon={L.divIcon({
                 className: "",
-                html: `<div class="bus-marker" style="background:${brand.error}">${bdSos.label ?? "SOS"}</div>`,
+                html: `<div class="bus-marker" style="background:${brand.error}">${bdSos.label ?? t("SOS")}</div>`,
                 iconSize: [40, 40],
                 iconAnchor: [20, 20],
               })}
             >
-              <Popup>SOS requester location (device or provided). Not vehicle GPS.</Popup>
+              <Popup>{t("SOS requester location (device or provided). Not vehicle GPS.")}</Popup>
             </Marker>
           )}
           {bdBuses.map((b) => (
@@ -232,18 +234,26 @@ export default function LiveMapInner({
               <Popup>
                 <div className="text-sm">
                   <div className="font-semibold">{b.registrationNo ?? b.bus?.registrationNo ?? b.busId}</div>
-                  <div>{b.routeName ?? b.bus?.route?.name ?? "Unassigned route"}</div>
-                  <div>Speed: {Number(b.speed).toFixed(1)} km/h</div>
-                  <div>Heading: {Number(b.heading ?? 0).toFixed(0)}°</div>
-                  <div>GPS: {b.trackingState ?? "ONLINE"}</div>
+                  <div>{b.routeName ?? b.bus?.route?.name ?? t("Unassigned route")}</div>
                   <div>
-                    Route: {b.complianceStatus ?? "—"}
+                    {t("Speed")}: {Number(b.speed).toFixed(1)} km/h
+                  </div>
+                  <div>
+                    {t("Heading")}: {Number(b.heading ?? 0).toFixed(0)}°
+                  </div>
+                  <div>
+                    {t("GPS")}: {b.trackingState ?? t("ONLINE")}
+                  </div>
+                  <div>
+                    {t("Route")}: {b.complianceStatus ?? "—"}
                     {b.deviationM != null ? ` · ${Math.round(b.deviationM)} m` : ""}
                   </div>
-                  <div>Updated: {b.timestamp ? new Date(b.timestamp).toLocaleTimeString() : "—"}</div>
-                  <div className="text-xs text-slate-500">{b.dataLabel ?? b.source ?? "SIMULATED"}</div>
+                  <div>
+                    {t("Updated")}: {b.timestamp ? new Date(b.timestamp).toLocaleTimeString() : "—"}
+                  </div>
+                  <div className="text-xs text-slate-500">{b.dataLabel ?? b.source ?? t("SIMULATED")}</div>
                   <div className="text-xs text-slate-500">
-                    {Number(b.latitude).toFixed(5)}, {Number(b.longitude).toFixed(5)} · Bangladesh
+                    {Number(b.latitude).toFixed(5)}, {Number(b.longitude).toFixed(5)} · {t("Bangladesh")}
                   </div>
                 </div>
               </Popup>
@@ -253,7 +263,7 @@ export default function LiveMapInner({
       </div>
       {selected && (
         <div className="shrink-0 border-t border-slate-200 bg-white px-3 py-2 text-xs leading-relaxed text-slate-600">
-          Selected <strong className="break-all">{selected.registrationNo ?? selected.busId}</strong>
+          {t("Selected")} <strong className="break-all">{selected.registrationNo ?? selected.busId}</strong>
           {" · "}
           {selected.trackingState ?? "ONLINE"}
           {selected.complianceStatus ? ` · ${selected.complianceStatus}` : ""}

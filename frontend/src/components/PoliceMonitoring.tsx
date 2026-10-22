@@ -122,10 +122,20 @@ export function PoliceMonitoring() {
     <div className="space-y-5">
       {error && <ErrorState message={error} />}
       <p className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text-muted)]">
-        Police / emergency monitoring. GPS is SIMULATED. Route status is rule-based, not AI. SOS is an application workflow — not live 999, police, or ambulance dispatch. Use Emergencies for the full SOS desk.
+        {t(
+          "Police / emergency monitoring. GPS is SIMULATED. Route status is rule-based, not AI. SOS is an application workflow — not live 999, police, or ambulance dispatch. Use Emergencies for the full SOS desk.",
+        )}
       </p>
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Active vehicles" value={cards.activeBuses ?? "—"} hint={`${cards.totalBuses ?? 0} registered`} />
+        <StatCard
+          label="Active vehicles"
+          value={cards.activeBuses ?? "—"}
+          hint={
+            <>
+              {cards.totalBuses ?? 0} {t("registered")}
+            </>
+          }
+        />
         <StatCard label="GPS online / stale" value={`${cards.vehiclesOnline ?? 0} / ${cards.vehiclesStale ?? 0}`} />
         <StatCard label="Off route / deviating" value={`${cards.vehiclesOffRoute ?? 0} / ${cards.vehiclesDeviating ?? 0}`} hint="Rule-based" />
         <StatCard label="Deviations today" value={cards.deviationsToday ?? "—"} />
@@ -138,7 +148,11 @@ export function PoliceMonitoring() {
       <div>
         <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
           <h2 className="font-display text-base font-semibold tracking-tight">{t("Live emergency map")}</h2>
-          <span className="text-xs text-[var(--text-muted)]">Bangladesh only · Vehicle logo = live GPS · Ring: green on route · amber warning · red off route · grey stale</span>
+          <span className="text-xs text-[var(--text-muted)]">
+            {t(
+              "Bangladesh only · Vehicle logo = live GPS · Ring: green on route · amber warning · red off route · grey stale",
+            )}
+          </span>
         </div>
         <LiveMap buses={buses} routes={routes} />
       </div>
@@ -148,23 +162,34 @@ export function PoliceMonitoring() {
           <div>
             <h3 className="font-display text-base font-semibold tracking-tight">{t("Vehicle search")}</h3>
             <p className="mt-0.5 text-xs text-[var(--text-muted)]">
-              Click a registration for driver, vehicle details, and point of origin.
+              {t("Click a registration for driver, vehicle details, and point of origin.")}
             </p>
           </div>
           <div className="toolbar w-full sm:w-auto">
-            <input className="input" aria-label="Search registration" placeholder="Registration" value={q} onChange={(e) => setQ(e.target.value)} />
-            <select className="input" aria-label="Filter GPS status" value={gpsFilter} onChange={(e) => setGpsFilter(e.target.value)}>
-              <option value="">All GPS</option>
-              <option value="ONLINE">ONLINE</option>
-              <option value="STALE">STALE</option>
+            <input
+              className="input"
+              aria-label={t("Search registration")}
+              placeholder={t("Registration")}
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+            />
+            <select className="input" aria-label={t("Filter GPS status")} value={gpsFilter} onChange={(e) => setGpsFilter(e.target.value)}>
+              <option value="">{t("All GPS")}</option>
+              <option value="ONLINE">{t("ONLINE")}</option>
+              <option value="STALE">{t("STALE")}</option>
             </select>
-            <select className="input" aria-label="Filter compliance" value={complianceFilter} onChange={(e) => setComplianceFilter(e.target.value)}>
-              <option value="">All compliance</option>
-              <option value="ON_ROUTE">ON_ROUTE</option>
-              <option value="NEAR_ROUTE">NEAR_ROUTE</option>
-              <option value="DEVIATING">DEVIATING</option>
-              <option value="OFF_ROUTE">OFF_ROUTE</option>
-              <option value="STALE">STALE</option>
+            <select
+              className="input"
+              aria-label={t("Filter compliance")}
+              value={complianceFilter}
+              onChange={(e) => setComplianceFilter(e.target.value)}
+            >
+              <option value="">{t("All compliance")}</option>
+              <option value="ON_ROUTE">{t("ON_ROUTE")}</option>
+              <option value="NEAR_ROUTE">{t("NEAR_ROUTE")}</option>
+              <option value="DEVIATING">{t("DEVIATING")}</option>
+              <option value="OFF_ROUTE">{t("OFF_ROUTE")}</option>
+              <option value="STALE">{t("STALE")}</option>
             </select>
             <Link className="btn btn-primary" href={q.trim() ? `/police/buses?q=${encodeURIComponent(q.trim())}` : "/police/buses"}>
               {t("Full vehicle lookup")}
@@ -176,15 +201,15 @@ export function PoliceMonitoring() {
             <table className="data">
               <thead>
                 <tr>
-                  <th>Registration</th>
-                  <th>Operator</th>
-                  <th>Driver</th>
-                  <th>Origin</th>
-                  <th>Route</th>
-                  <th>GPS</th>
-                  <th>Compliance</th>
-                  <th>Speed</th>
-                  <th>Vehicle</th>
+                  <th>{t("Registration")}</th>
+                  <th>{t("Operator")}</th>
+                  <th>{t("Driver")}</th>
+                  <th>{t("Origin")}</th>
+                  <th>{t("Route")}</th>
+                  <th>{t("GPS")}</th>
+                  <th>{t("Compliance")}</th>
+                  <th>{t("Speed")}</th>
+                  <th>{t("Vehicle")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -213,11 +238,19 @@ export function PoliceMonitoring() {
           </div>
         )}
         <div className="pager">
-          <span>{vehicleTotal} vehicles</span>
+          <span>
+            {vehicleTotal} {t("vehicles")}
+          </span>
           <div className="pager-actions">
-            <button type="button" className="btn btn-ghost" disabled={page <= 1} onClick={() => setPage(page - 1)}>Previous</button>
-            <span className="self-center">Page {page} / {pages}</span>
-            <button type="button" className="btn btn-ghost" disabled={page >= pages} onClick={() => setPage(page + 1)}>Next</button>
+            <button type="button" className="btn btn-ghost" disabled={page <= 1} onClick={() => setPage(page - 1)}>
+              {t("Previous")}
+            </button>
+            <span className="self-center">
+              {t("Page")} {page} / {pages}
+            </span>
+            <button type="button" className="btn btn-ghost" disabled={page >= pages} onClick={() => setPage(page + 1)}>
+              {t("Next")}
+            </button>
           </div>
         </div>
       </section>
