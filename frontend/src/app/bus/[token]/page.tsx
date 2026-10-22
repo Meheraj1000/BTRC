@@ -8,6 +8,7 @@ import { Badge, ErrorState } from "@/components/StatCard";
 import { api, getToken } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { boardedBusPath } from "@/lib/qrBus";
+import { LanguageToggle, useI18n } from "@/lib/i18n";
 
 const SOS_CATEGORIES = [
   ["SAFETY", "Safety"],
@@ -58,6 +59,7 @@ export default function PublicBusQrPage() {
   const token = String(params.token ?? "");
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
+  const { t } = useI18n();
   const [bus, setBus] = useState<PublicBus | null>(null);
   const [error, setError] = useState("");
   const [complaintCategory, setComplaintCategory] = useState("OTHER");
@@ -196,8 +198,11 @@ export default function PublicBusQrPage() {
     <div className="min-h-[100dvh] bg-[var(--background)] px-4 py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(1.5rem,env(safe-area-inset-top))]">
       <div className="mx-auto w-full max-w-lg space-y-4">
         <div className="flex items-center justify-between gap-3">
-          <BrandMark subtitle="Scan · Vehicle card" href="/" />
-          <Link href="/" className="btn btn-ghost text-xs">Home</Link>
+          <BrandMark subtitle={t("Scan bus QR")} href="/" />
+          <div className="flex items-center gap-2">
+            <LanguageToggle />
+            <Link href="/" className="btn btn-ghost text-xs">{t("Home")}</Link>
+          </div>
         </div>
 
         <p className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text-muted)]">
@@ -211,7 +216,7 @@ export default function PublicBusQrPage() {
           <>
             <section className="card w-full border-l-4 border-l-[var(--error)] p-4 sm:p-6">
               <h1 className="font-display text-lg font-semibold tracking-tight text-[var(--error)] sm:text-xl">
-                Emergency SOS
+                {t("Emergency SOS")}
               </h1>
               <p className="mt-2 text-sm text-[var(--text-secondary)]">
                 This records an SOS in the Nirapad Transit application for authorized monitoring accounts.
@@ -314,7 +319,7 @@ export default function PublicBusQrPage() {
             </section>
 
             <section className="card space-y-2 p-4">
-              <h2 className="font-display text-base font-semibold">Route</h2>
+              <h2 className="font-display text-base font-semibold">{t("Route")}</h2>
               {!bus.route ? (
                 <p className="text-sm text-[var(--text-muted)]">No route assigned.</p>
               ) : (
@@ -327,7 +332,7 @@ export default function PublicBusQrPage() {
             </section>
 
             <section className="card space-y-2 p-4">
-              <h2 className="font-display text-base font-semibold">Driver</h2>
+              <h2 className="font-display text-base font-semibold">{t("Driver")}</h2>
               {!bus.driver ? (
                 <p className="text-sm text-[var(--text-muted)]">No driver assigned.</p>
               ) : (

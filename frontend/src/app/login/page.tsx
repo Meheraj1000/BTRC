@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { BrandMark } from "@/components/BrandMark";
 import { homeFor, useAuth } from "@/lib/auth";
+import { LanguageToggle, useI18n } from "@/lib/i18n";
 
 function safeNext(value: string | null) {
   if (!value || !value.startsWith("/") || value.startsWith("//")) return null;
@@ -23,6 +24,7 @@ const DEMOS = [
 
 function LoginForm() {
   const { login } = useAuth();
+  const { t } = useI18n();
   const router = useRouter();
   const search = useSearchParams();
   const next = safeNext(search.get("next"));
@@ -48,18 +50,21 @@ function LoginForm() {
   return (
     <div className="auth-shell">
       <div className="w-full max-w-md animate-fade-up px-0">
+        <div className="mb-4 flex justify-end">
+          <LanguageToggle invert />
+        </div>
         <div className="mb-6 flex justify-center">
-          <BrandMark invert subtitle="Bangladesh · Safe public transport" href="/" />
+          <BrandMark invert subtitle={t("Bangladesh · Safe public transport")} href="/" />
         </div>
         <div className="brand-banner mb-4 rounded-xl px-3 py-2 text-xs">
-          Demo password for all seeded accounts: <strong>Demo@12345</strong>
+          {t("Demo password for all seeded accounts:")} <strong>Demo@12345</strong>
         </div>
         <form onSubmit={onSubmit} className="auth-panel">
-          <h1 className="font-display text-2xl font-semibold tracking-tight">Sign in</h1>
+          <h1 className="font-display text-2xl font-semibold tracking-tight">{t("Sign in")}</h1>
           <p className="mt-1 text-sm text-[var(--text-muted)]">
-            Role-based access for the national transport command demo.
+            {t("Role-based access for the national transport command demo.")}
           </p>
-          <label className="mt-5 block text-sm font-medium" htmlFor="login-email">Email</label>
+          <label className="mt-5 block text-sm font-medium" htmlFor="login-email">{t("Email")}</label>
           <input
             id="login-email"
             className="input mt-1"
@@ -69,7 +74,7 @@ function LoginForm() {
             autoComplete="username"
             required
           />
-          <label className="mt-3 block text-sm font-medium" htmlFor="login-password">Password</label>
+          <label className="mt-3 block text-sm font-medium" htmlFor="login-password">{t("Password")}</label>
           <input
             id="login-password"
             className="input mt-1"
@@ -85,20 +90,20 @@ function LoginForm() {
             </p>
           )}
           <button className="btn btn-primary mt-5 w-full" disabled={busy}>
-            {busy ? "Signing in…" : "Sign in"}
+            {busy ? t("Signing in…") : t("Sign in")}
           </button>
           <p className="mt-3 text-center text-sm text-[var(--text-muted)]">
             <Link href="/register" className="font-semibold text-brand-600 hover:text-brand-700">
-              Passenger register
+              {t("Passenger register")}
             </Link>
             {" · "}
             <Link href="/register/driver" className="font-semibold text-brand-600 hover:text-brand-700">
-              Driver register
+              {t("Driver register")}
             </Link>
           </p>
         </form>
         <div className="mt-4 rounded-2xl border border-white/15 bg-white/95 p-4 text-xs text-[var(--text-secondary)]">
-          <div className="mb-2 font-semibold text-[var(--text-primary)]">Demo accounts</div>
+          <div className="mb-2 font-semibold text-[var(--text-primary)]">{t("Demo accounts")}</div>
           <div className="flex flex-wrap gap-2">
             {DEMOS.map(([e, r]) => (
               <button

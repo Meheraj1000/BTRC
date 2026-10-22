@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Fraunces, Source_Sans_3 } from "next/font/google";
+import { Fraunces, Noto_Sans_Bengali, Source_Sans_3 } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/Providers";
 
@@ -12,6 +12,13 @@ const display = Fraunces({
 const body = Source_Sans_3({
   subsets: ["latin"],
   variable: "--font-body",
+  display: "swap",
+});
+
+const bengali = Noto_Sans_Bengali({
+  subsets: ["bengali"],
+  weight: ["400", "600", "700"],
+  variable: "--font-bn",
   display: "swap",
 });
 
@@ -31,7 +38,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${display.variable} ${body.variable}`}>
+    <html lang="en" className={`${display.variable} ${body.variable} ${bengali.variable}`}>
       <body className="font-body overflow-x-hidden">
         <Providers>{children}</Providers>
       </body>

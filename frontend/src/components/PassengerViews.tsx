@@ -6,6 +6,7 @@ import { AppShell } from "@/components/AppShell";
 import { LiveMap } from "@/components/map/LiveMap";
 import { Badge, EmptyState, ErrorState, StatCard } from "@/components/StatCard";
 import { api } from "@/lib/api";
+import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { isEmergencyComplaint } from "@/lib/inbox";
 import type { AuthUser } from "@/lib/types";
@@ -56,6 +57,7 @@ type NoteRow = {
 };
 
 export function PassengerHome() {
+  const { t } = useI18n();
   const [q, setQ] = useState("");
   const [routes, setRoutes] = useState<RouteRow[]>([]);
   const [nearby, setNearby] = useState<Array<Record<string, unknown>>>([]);
@@ -90,13 +92,13 @@ export function PassengerHome() {
       {error && <ErrorState message={error} />}
       <p className="mb-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text-muted)]">Passenger view only. GPS is SIMULATED. This is not a government or emergency dispatch service.</p>
       <section className="card mb-4 border-l-4 border-l-[var(--brand-primary)] p-4 sm:p-5">
-        <h2 className="font-display text-base font-semibold tracking-tight">Boarded a bus?</h2>
+        <h2 className="font-display text-base font-semibold tracking-tight">{t("Boarded a bus?")}</h2>
         <p className="mt-1 text-sm text-[var(--text-secondary)]">
-          Scan the QR on the vehicle to see bus and driver details, lodge a complaint, or report an emergency.
+          {t("Scan the QR on the vehicle to see bus and driver details, lodge a complaint, or report an emergency.")}
         </p>
         <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-          <Link className="btn btn-primary" href="/passenger/scan">Scan bus QR</Link>
-          <Link className="btn btn-ghost" href="/passenger/complaints">My complaints</Link>
+          <Link className="btn btn-primary" href="/passenger/scan">{t("Scan bus QR")}</Link>
+          <Link className="btn btn-ghost" href="/passenger/complaints">{t("My complaints")}</Link>
         </div>
       </section>
       <div className="grid gap-4 lg:grid-cols-3">
@@ -106,9 +108,9 @@ export function PassengerHome() {
       </div>
       <div className="toolbar my-4">
         <input className="input" aria-label="Filter routes" placeholder="Filter routes on this page" value={q} onChange={(e) => setQ(e.target.value)} />
-        <Link className="btn btn-primary" href="/passenger/scan">Scan bus QR</Link>
-        <Link className="btn btn-ghost" href="/passenger/routes">Search all routes</Link>
-        <Link className="btn btn-ghost" href="/passenger/map">Live map</Link>
+        <Link className="btn btn-primary" href="/passenger/scan">{t("Scan bus QR")}</Link>
+        <Link className="btn btn-ghost" href="/passenger/routes">{t("Search all routes")}</Link>
+        <Link className="btn btn-ghost" href="/passenger/map">{t("Live map")}</Link>
       </div>
       {loading && !routes.length ? <p className="text-sm text-slate-500">Loading…</p> : null}
       <h2 className="font-display mb-2 text-base font-semibold tracking-tight">Nearby / trackable buses</h2>

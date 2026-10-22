@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
+import { useI18n } from "@/lib/i18n";
 import { getSocket } from "@/lib/socket";
 import type { BusLive, Overview } from "@/lib/types";
 import { EventDesk } from "./EventDesk";
@@ -51,6 +52,7 @@ function tone(status?: string | null) {
 }
 
 export function PoliceMonitoring() {
+  const { t } = useI18n();
   const [overview, setOverview] = useState<Overview | null>(null);
   const [buses, setBuses] = useState<BusLive[]>([]);
   const [routes, setRoutes] = useState<Array<{ id: string; name: string; polyline: Array<{ lat: number; lng: number }>; stops?: Array<{ name: string; latitude: number; longitude: number; sequence?: number }> }>>([]);
@@ -135,7 +137,7 @@ export function PoliceMonitoring() {
 
       <div>
         <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-          <h2 className="font-display text-base font-semibold tracking-tight">Live emergency map</h2>
+          <h2 className="font-display text-base font-semibold tracking-tight">{t("Live emergency map")}</h2>
           <span className="text-xs text-[var(--text-muted)]">Bangladesh only · Vehicle logo = live GPS · Ring: green on route · amber warning · red off route · grey stale</span>
         </div>
         <LiveMap buses={buses} routes={routes} />
@@ -144,7 +146,7 @@ export function PoliceMonitoring() {
       <section className="card p-4">
         <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
           <div>
-            <h3 className="font-display text-base font-semibold tracking-tight">Vehicle search</h3>
+            <h3 className="font-display text-base font-semibold tracking-tight">{t("Vehicle search")}</h3>
             <p className="mt-0.5 text-xs text-[var(--text-muted)]">
               Click a registration for driver, vehicle details, and point of origin.
             </p>
@@ -165,7 +167,7 @@ export function PoliceMonitoring() {
               <option value="STALE">STALE</option>
             </select>
             <Link className="btn btn-primary" href={q.trim() ? `/police/buses?q=${encodeURIComponent(q.trim())}` : "/police/buses"}>
-              Full vehicle lookup
+              {t("Full vehicle lookup")}
             </Link>
           </div>
         </div>
@@ -221,7 +223,7 @@ export function PoliceMonitoring() {
       </section>
 
       <section className="card p-4">
-        <h3 className="font-display mb-3 text-base font-semibold tracking-tight">Important events</h3>
+        <h3 className="font-display mb-3 text-base font-semibold tracking-tight">{t("Important events")}</h3>
         <EventDesk canManage />
       </section>
     </div>

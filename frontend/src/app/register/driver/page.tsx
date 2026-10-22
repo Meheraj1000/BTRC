@@ -5,11 +5,13 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { BrandMark } from "@/components/BrandMark";
 import { api } from "@/lib/api";
+import { LanguageToggle, useI18n } from "@/lib/i18n";
 
 type CompanyOpt = { id: string; name: string; city?: string | null };
 
 export default function DriverRegisterPage() {
   const router = useRouter();
+  const { t } = useI18n();
   const [companies, setCompanies] = useState<CompanyOpt[]>([]);
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -63,21 +65,22 @@ export default function DriverRegisterPage() {
   return (
     <div className="auth-shell">
       <form onSubmit={onSubmit} className="auth-panel animate-fade-up max-w-lg">
-        <div className="mb-4">
-          <BrandMark subtitle="Driver self-registration" href="/" />
+        <div className="mb-4 flex items-start justify-between gap-3">
+          <BrandMark subtitle={t("Driver self-registration")} href="/" />
+          <LanguageToggle />
         </div>
-        <h1 className="font-display text-2xl font-semibold tracking-tight">Register as a driver</h1>
+        <h1 className="font-display text-2xl font-semibold tracking-tight">{t("Register as a driver")}</h1>
         <p className="mt-1 text-sm text-[var(--text-muted)]">
-          Submit your details for Super Admin review. You cannot sign in until the registration is accepted.
+          {t("Submit your details for Super Admin review. You cannot sign in until the registration is accepted.")}
         </p>
 
-        <label className="mt-5 block text-sm font-medium" htmlFor="drv-name">Full name</label>
+        <label className="mt-5 block text-sm font-medium" htmlFor="drv-name">{t("Full name")}</label>
         <input id="drv-name" className="input mt-1" value={fullName} onChange={(e) => setFullName(e.target.value)} required minLength={2} />
 
-        <label className="mt-3 block text-sm font-medium" htmlFor="drv-email">Email</label>
+        <label className="mt-3 block text-sm font-medium" htmlFor="drv-email">{t("Email")}</label>
         <input id="drv-email" className="input mt-1" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
 
-        <label className="mt-3 block text-sm font-medium" htmlFor="drv-phone">Phone (01XXXXXXXXX)</label>
+        <label className="mt-3 block text-sm font-medium" htmlFor="drv-phone">{t("Phone (01XXXXXXXXX)")}</label>
         <input
           id="drv-phone"
           className="input mt-1"
@@ -89,7 +92,7 @@ export default function DriverRegisterPage() {
           placeholder="01712345678"
         />
 
-        <label className="mt-3 block text-sm font-medium" htmlFor="drv-password">Password</label>
+        <label className="mt-3 block text-sm font-medium" htmlFor="drv-password">{t("Password")}</label>
         <input
           id="drv-password"
           className="input mt-1"
@@ -98,10 +101,10 @@ export default function DriverRegisterPage() {
           onChange={(e) => setPassword(e.target.value)}
           required
           minLength={8}
-          placeholder="Minimum 8 characters"
+          placeholder={t("Minimum 8 characters")}
         />
 
-        <label className="mt-3 block text-sm font-medium" htmlFor="drv-license">Driving license number</label>
+        <label className="mt-3 block text-sm font-medium" htmlFor="drv-license">{t("Driving license number")}</label>
         <input
           id="drv-license"
           className="input mt-1"
@@ -114,7 +117,7 @@ export default function DriverRegisterPage() {
 
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           <label className="block text-sm font-medium" htmlFor="drv-expiry">
-            License expiry
+            {t("License expiry")}
             <input
               id="drv-expiry"
               className="input mt-1"
@@ -124,7 +127,7 @@ export default function DriverRegisterPage() {
             />
           </label>
           <label className="block text-sm font-medium" htmlFor="drv-exp">
-            Experience (years)
+            {t("Experience (years)")}
             <input
               id="drv-exp"
               className="input mt-1"
@@ -137,9 +140,9 @@ export default function DriverRegisterPage() {
           </label>
         </div>
 
-        <label className="mt-3 block text-sm font-medium" htmlFor="drv-company">Preferred operator (optional)</label>
+        <label className="mt-3 block text-sm font-medium" htmlFor="drv-company">{t("Preferred operator (optional)")}</label>
         <select id="drv-company" className="input mt-1" value={companyId} onChange={(e) => setCompanyId(e.target.value)}>
-          <option value="">Select later / Super Admin will assign</option>
+          <option value="">{t("Select later / Super Admin will assign")}</option>
           {companies.map((c) => (
             <option key={c.id} value={c.id}>
               {c.name}{c.city ? ` · ${c.city}` : ""}
@@ -159,13 +162,13 @@ export default function DriverRegisterPage() {
         )}
 
         <button className="btn btn-primary mt-5 w-full" disabled={busy || Boolean(done)} type="submit">
-          {busy ? "Submitting…" : "Submit for review"}
+          {busy ? t("Submitting…") : t("Submit for review")}
         </button>
         <p className="mt-3 text-center text-sm text-[var(--text-muted)]">
-          Already registered?{" "}
-          <Link href="/login" className="font-semibold text-brand-600 hover:text-brand-700">Sign in</Link>
+          {t("Already registered?")}{" "}
+          <Link href="/login" className="font-semibold text-brand-600 hover:text-brand-700">{t("Sign in")}</Link>
           {" · "}
-          <Link href="/register" className="font-semibold text-brand-600 hover:text-brand-700">Passenger register</Link>
+          <Link href="/register" className="font-semibold text-brand-600 hover:text-brand-700">{t("Passenger register")}</Link>
         </p>
       </form>
     </div>

@@ -6,6 +6,7 @@ import { AppShell } from "@/components/AppShell";
 import { LiveMap } from "@/components/map/LiveMap";
 import { Badge, EmptyState, ErrorState } from "@/components/StatCard";
 import { api } from "@/lib/api";
+import { useI18n } from "@/lib/i18n";
 import type { BusLive } from "@/lib/types";
 
 type LookupBus = {
@@ -58,6 +59,7 @@ function toneFor(status?: string | null): "green" | "yellow" | "red" | "slate" |
 }
 
 export function PoliceVehicleLookup() {
+  const { t } = useI18n();
   const [q, setQ] = useState("");
   const [debounced, setDebounced] = useState("");
   const [page, setPage] = useState(1);
@@ -227,7 +229,7 @@ export function PoliceVehicleLookup() {
 
                 <section className="space-y-2 border-l-4 border-l-[var(--brand-primary)] pl-3">
                   <h3 className="text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">
-                    Point of origin
+                    {t("Point of origin")}
                   </h3>
                   {!selected.route ? (
                     <p className="text-sm text-[var(--text-muted)]">No route assigned — origin unknown.</p>
@@ -235,7 +237,7 @@ export function PoliceVehicleLookup() {
                     <>
                       <p className="text-base font-semibold">{selected.route.startName ?? "—"}</p>
                       <p className="text-sm text-[var(--text-secondary)]">
-                        Destination: {selected.route.endName ?? "—"}
+                        {t("Destination")}: {selected.route.endName ?? "—"}
                       </p>
                       <p className="text-xs text-[var(--text-muted)]">
                         {selected.route.code} · {selected.route.name}
@@ -248,7 +250,7 @@ export function PoliceVehicleLookup() {
 
                 <section className="space-y-2">
                   <h3 className="text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">
-                    Operating driver
+                    {t("Operating driver")}
                   </h3>
                   {!selected.driver ? (
                     <p className="text-sm text-[var(--text-muted)]">No driver currently assigned.</p>
@@ -284,7 +286,7 @@ export function PoliceVehicleLookup() {
 
                 <section className="space-y-2">
                   <h3 className="text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">
-                    Vehicle information
+                    {t("Vehicle information")}
                   </h3>
                   <dl className="grid gap-2 text-sm sm:grid-cols-2">
                     <div>
@@ -333,7 +335,7 @@ export function PoliceVehicleLookup() {
                 {live && (
                   <section className="space-y-2">
                     <h3 className="text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">
-                      Last known location
+                      {t("Last known location")}
                     </h3>
                     <p className="text-xs text-[var(--text-muted)]">
                       {live.trackingState} · {live.speed.toFixed(0)} km/h ·{" "}
@@ -345,10 +347,10 @@ export function PoliceVehicleLookup() {
 
                 <div className="flex flex-wrap gap-2 border-t border-[var(--border)] pt-3">
                   <Link className="btn btn-primary" href={`/police/complaints?busId=${selected.id}`}>
-                    Open complaint
+                    {t("Open complaint")}
                   </Link>
                   <Link className="btn btn-ghost" href="/police/emergencies">
-                    Emergencies
+                    {t("Emergencies")}
                   </Link>
                 </div>
               </>

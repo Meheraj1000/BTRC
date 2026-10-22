@@ -37,6 +37,7 @@ import {
 } from "../services/driver.service.js";
 import { YEAR_MAX, YEAR_MIN } from "../utils/busDto.js";
 import { param } from "../utils/http.js";
+import { connectGpsDevice, disconnectGpsDevice, listGpsDevices, registerGpsDevice } from "../services/gpsDevice.service.js";
 import { passwordSchema } from "../utils/password.js";
 import { ownerCompanyId } from "../utils/scope.js";
 
@@ -371,11 +372,7 @@ router.delete("/drivers/:id", requirePermission("drivers.manage"), auditAction("
 // ---- GPS devices ----
 router.get("/gps-devices", requirePermission("gps.manage"), async (_req, res, next) => {
   try {
-    const items = await prisma.gpsDevice.findMany({
-      where: { deletedAt: null },
-      include: { bus: { select: { id: true, registrationNo: true } } },
-    });
-    return ok(res, items);
+    return ok(res, await listGpsDevices());
   } catch (err) {
     next(err);
   }
@@ -385,14 +382,16 @@ router.post(
   "/gps-devices",
   requirePermission("gps.manage"),
   validate(z.object({
-    serialNumber: z.string().min(3),
-    vendor: z.string().optional(),
-    firmware: z.string().optional(),
-    dataSource: z.enum(["SIMULATION", "DEVICE", "PUBLIC_DATASET", "SYNTHETIC"]).optional(),
+    serialNumber: z.string().min(3).max(64),
+    vendor: z.string().max(80).optional(),
+    firmware: z.string().max(40).optional(),
+    notes: z.string().max(240).optional(),
   })),
+  auditAction("gps.device.register", "GpsDevice"),
   async (req, res, next) => {
     try {
-      const device = await prisma.gpsDevice.create({ data: req.body });
+      const device = await registerGpsDevice(req.body);
+      res.locals.entityId = device.id;
       return ok(res, device, "GPS device registered", 201);
     } catch (err) {
       next(err);
@@ -400,13 +399,35 @@ router.post(
   },
 );
 
-router.put("/gps-devices/:id", requirePermission("gps.manage"), async (req, res, next) => {
-  try {
-    const device = await prisma.gpsDevice.update({ where: { id: param(req, "id") }, data: req.body });
-    return ok(res, device);
-  } catch (err) {
-    next(err);
-  }
-});
+router.post(
+  "/gps-devices/:id/connect",
+  requirePermission("gps.manage"),
+  validate(z.object({ busId: z.string().uuid() })),
+  auditAction("gps.device.connect", "GpsDevice"),
+  async (req, res, next) => {
+    try {
+      const device = await connectGpsDevice(param(req, "id"), req.body.busId);
+      res.locals.entityId = device.id;
+      return ok(res, device, "GPS device connected");
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+router.post(
+  "/gps-devices/:id/disconnect",
+  requirePermission("gps.manage"),
+  auditAction("gps.device.disconnect", "GpsDevice"),
+  async (req, res, next) => {
+    try {
+      const device = await disconnectGpsDevice(param(req, "id"));
+      res.locals.entityId = device.id;
+      return ok(res, device, "GPS device disconnected");
+    } catch (err) {
+      next(err);
+    }
+  },
+);
 
 export default router;

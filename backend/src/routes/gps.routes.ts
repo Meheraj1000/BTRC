@@ -1,4 +1,4 @@
-import { Router, type Request } from "express";
+import { Router, type NextFunction, type Request, type Response } from "express";
 import { z } from "zod";
 import { env } from "../config/env.js";
 import { ApiError, ok } from "../lib/apiResponse.js";
@@ -14,6 +14,7 @@ import {
   getLocationHistory,
   ingestLocation,
 } from "../services/gps.service.js";
+import { authenticateGpsDevice, markGpsDeviceSeen } from "../services/gpsDevice.service.js";
 import { haversineMeters } from "../utils/geo.js";
 import { canSeeOperationalGps, projectGps, toPublicGpsDto } from "../utils/gpsDto.js";
 import { param } from "../utils/http.js";
@@ -36,7 +37,7 @@ function projectScoped(row: Parameters<typeof projectGps>[0], roles: Parameters<
 const router = Router();
 
 const ingestSchema = z.object({
-  busId: z.string().uuid(),
+  busId: z.string().uuid().optional(),
   deviceId: z.string().optional(),
   latitude: z.number().min(-90).max(90),
   longitude: z.number().min(-180).max(180),
@@ -49,12 +50,39 @@ const ingestSchema = z.object({
   source: z.enum(["SIMULATION", "DEVICE", "PUBLIC_DATASET", "SYNTHETIC"]).optional(),
 });
 
-router.post("/location", gpsIngestLimiter, authRequired, requirePermission("gps.ingest"), validate(ingestSchema), async (req, res, next) => {
-  try {
-    if (req.body.source === "DEVICE" && env.GPS_SOURCE_MODE !== "DEVICE") {
-      throw new ApiError("DEVICE source rejected: GPS_SOURCE_MODE is SIMULATION", 400);
+function deviceKeyOrUser(req: Request, res: Response, next: NextFunction) {
+  if (req.header("x-gps-device-key")) {
+    next();
+    return;
+  }
+  authRequired(req, res, (err?: unknown) => {
+    if (err) {
+      next(err);
+      return;
     }
-    const data = await ingestLocation(req.body, req.user);
+    requirePermission("gps.ingest")(req, res, next);
+  });
+}
+
+router.post("/location", gpsIngestLimiter, deviceKeyOrUser, validate(ingestSchema), async (req, res, next) => {
+  try {
+    const deviceKey = req.header("x-gps-device-key");
+    if (deviceKey) {
+      const device = await authenticateGpsDevice(deviceKey);
+      const data = await ingestLocation(
+        { ...req.body, busId: device.busId, deviceId: device.id, source: "DEVICE" },
+        undefined,
+        { viaDevice: true },
+      );
+      await markGpsDeviceSeen(device.id);
+      return ok(res, data, "Device location stored");
+    }
+    if (req.body.source === "DEVICE" && env.GPS_SOURCE_MODE !== "DEVICE") {
+      throw new ApiError("DEVICE source rejected while GPS_SOURCE_MODE is SIMULATION. Use a connected device key.", 400);
+    }
+    const busId = req.body.busId;
+    if (!busId) throw new ApiError("busId is required", 422);
+    const data = await ingestLocation({ ...req.body, busId }, req.user);
     return ok(res, data, "Location stored");
   } catch (err) {
     next(err);

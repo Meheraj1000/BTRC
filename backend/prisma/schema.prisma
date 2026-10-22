@@ -489,6 +489,10 @@ model GpsDevice {
   installedAt   DateTime?
   notes         String?
   dataSource    GpsDataSource @default(SIMULATION)
+  apiKeyHash    String?    @unique
+  apiKeyHint    String?
+  connectedAt   DateTime?
+  lastSeenAt    DateTime?
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
   deletedAt     DateTime?

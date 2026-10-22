@@ -73,6 +73,15 @@ h3,
   letter-spacing: -0.02em;
 }
 
+html[lang="bn"] body,
+html[lang="bn"] h1,
+html[lang="bn"] h2,
+html[lang="bn"] h3,
+html[lang="bn"] .font-display {
+  font-family: var(--font-bn), "Noto Sans Bengali", var(--font-body), sans-serif;
+  letter-spacing: 0;
+}
+
 img,
 video {
   max-width: 100%;

@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { BrandMark } from "@/components/BrandMark";
 import { useAuth } from "@/lib/auth";
+import { LanguageToggle, useI18n } from "@/lib/i18n";
 
 function safeNext(value: string | null) {
   if (!value || !value.startsWith("/") || value.startsWith("//")) return null;
@@ -13,6 +14,7 @@ function safeNext(value: string | null) {
 
 function RegisterForm() {
   const { register } = useAuth();
+  const { t } = useI18n();
   const router = useRouter();
   const search = useSearchParams();
   const next = safeNext(search.get("next"));
@@ -40,23 +42,24 @@ function RegisterForm() {
   return (
     <div className="auth-shell">
       <form onSubmit={onSubmit} className="auth-panel animate-fade-up">
-        <div className="mb-4">
-          <BrandMark subtitle="Passenger registration" href="/" />
+        <div className="mb-4 flex items-start justify-between gap-3">
+          <BrandMark subtitle={t("Passenger registration")} href="/" />
+          <LanguageToggle />
         </div>
-        <h1 className="font-display text-2xl font-semibold tracking-tight">Create passenger account</h1>
-        <p className="mt-1 text-sm text-[var(--text-muted)]">Creates a passenger role account only.</p>
-        <label className="mt-5 block text-sm font-medium" htmlFor="reg-name">Full name</label>
+        <h1 className="font-display text-2xl font-semibold tracking-tight">{t("Create passenger account")}</h1>
+        <p className="mt-1 text-sm text-[var(--text-muted)]">{t("Creates a passenger role account only.")}</p>
+        <label className="mt-5 block text-sm font-medium" htmlFor="reg-name">{t("Full name")}</label>
         <input id="reg-name" className="input mt-1" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
-        <label className="mt-3 block text-sm font-medium" htmlFor="reg-email">Email</label>
+        <label className="mt-3 block text-sm font-medium" htmlFor="reg-email">{t("Email")}</label>
         <input id="reg-email" className="input mt-1" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-        <label className="mt-3 block text-sm font-medium" htmlFor="reg-phone">Phone</label>
+        <label className="mt-3 block text-sm font-medium" htmlFor="reg-phone">{t("Phone")}</label>
         <input id="reg-phone" className="input mt-1" value={phone} onChange={(e) => setPhone(e.target.value)} />
-        <label className="mt-3 block text-sm font-medium" htmlFor="reg-password">Password</label>
+        <label className="mt-3 block text-sm font-medium" htmlFor="reg-password">{t("Password")}</label>
         <input
           id="reg-password"
           className="input mt-1"
           type="password"
-          placeholder="Minimum 8 characters"
+          placeholder={t("Minimum 8 characters")}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
@@ -68,14 +71,14 @@ function RegisterForm() {
           </p>
         )}
         <button className="btn btn-primary mt-5 w-full" disabled={busy}>
-          {busy ? "Creating…" : "Create account"}
+          {busy ? t("Creating…") : t("Create account")}
         </button>
         <p className="mt-3 text-center text-sm">
           <Link
             href={next ? `/login?next=${encodeURIComponent(next)}` : "/login"}
             className="font-semibold text-brand-600 hover:text-brand-700"
           >
-            Back to sign in
+            {t("Back to sign in")}
           </Link>
         </p>
       </form>

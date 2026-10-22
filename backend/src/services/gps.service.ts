@@ -47,19 +47,31 @@ async function assertCanIngest(actor: { id: string; roles: RoleCode[] } | undefi
   throw new ApiError("Insufficient permission to submit GPS", 403);
 }
 
-export async function ingestLocation(input: GpsIngest, actor?: { id: string; roles: RoleCode[] }) {
+export async function ingestLocation(
+  input: GpsIngest,
+  actor?: { id: string; roles: RoleCode[] },
+  options?: { viaDevice?: boolean },
+) {
   const bus = await prisma.bus.findFirst({
     where: { id: input.busId, deletedAt: null },
     include: { route: true, driver: { include: { user: true } } },
   });
   if (!bus) throw new ApiError("Bus not found", 404);
-  await assertCanIngest(actor, bus);
+  if (options?.viaDevice) {
+    if (!bus.gpsDeviceId || (input.deviceId && input.deviceId !== bus.gpsDeviceId)) {
+      throw new ApiError("This GPS device is not connected to the vehicle", 403);
+    }
+  } else {
+    await assertCanIngest(actor, bus);
+  }
 
   const timestamp = parseGpsTimestamp(input.timestamp);
   const previous = await prisma.gpsLatestLocation.findUnique({ where: { busId: bus.id } });
   assertGpsJump(previous, { latitude: input.latitude, longitude: input.longitude, timestamp });
 
-  const source = input.source ?? (env.GPS_SOURCE_MODE === "DEVICE" ? "DEVICE" : "SIMULATION");
+  const source = options?.viaDevice
+    ? "DEVICE"
+    : (input.source ?? (env.GPS_SOURCE_MODE === "DEVICE" ? "DEVICE" : "SIMULATION"));
   const tripId = input.tripId ?? undefined;
   const routeId = bus.routeId ?? undefined;
   const driverId = bus.driverId ?? undefined;

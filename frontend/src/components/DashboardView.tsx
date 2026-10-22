@@ -5,6 +5,7 @@ import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YA
 import { api } from "@/lib/api";
 import { getSocket } from "@/lib/socket";
 import { useAuth } from "@/lib/auth";
+import { useI18n } from "@/lib/i18n";
 import type { BusLive, Overview } from "@/lib/types";
 import { Badge, EmptyState, ErrorState, StatCard } from "./StatCard";
 import { LiveMap } from "./map/LiveMap";
@@ -105,6 +106,7 @@ export function DashboardView({
   variant?: DashboardVariant;
 }) {
   const { user } = useAuth();
+  const { t } = useI18n();
   const roles = user?.roles ?? [];
   const [overview, setOverview] = useState<Overview | null>(null);
   const [series, setSeries] = useState<{ dailyTrips: Array<{ day: string; trips: number }>; speedViolations: Array<{ day: string; count: number }> } | null>(null);
@@ -243,7 +245,7 @@ export function DashboardView({
       {showMap && (
         <div>
           <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-            <h2 className="font-display text-base font-semibold tracking-tight">Live monitoring map</h2>
+            <h2 className="font-display text-base font-semibold tracking-tight">{t("Live monitoring map")}</h2>
             <span className="text-xs text-[var(--text-muted)]">Bangladesh only · Vehicle logo = live GPS · Ring: green on route · amber warning · red off route · grey stale · SIMULATED GPS</span>
           </div>
           <LiveMap buses={buses} routes={routes} />
@@ -253,7 +255,7 @@ export function DashboardView({
       <div className="grid gap-4 xl:grid-cols-2">
         <section className="card p-4">
           <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
-            <h3 className="font-display text-base font-semibold tracking-tight">Vehicle monitoring</h3>
+            <h3 className="font-display text-base font-semibold tracking-tight">{t("Vehicle monitoring")}</h3>
             <div className="toolbar w-full sm:w-auto">
               <input className="input" aria-label="Search vehicles" placeholder="Search registration" value={vehicleQ} onChange={(e) => setVehicleQ(e.target.value)} />
               <select className="input" aria-label="Filter vehicle status" value={vehicleStatus} onChange={(e) => setVehicleStatus(e.target.value)}>
@@ -306,7 +308,7 @@ export function DashboardView({
 
         <section className="card p-4">
           <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
-            <h3 className="font-display text-base font-semibold tracking-tight">Driver monitoring</h3>
+            <h3 className="font-display text-base font-semibold tracking-tight">{t("Driver monitoring")}</h3>
             <select className="input w-full sm:w-48" aria-label="Filter drivers" value={driverStatus} onChange={(e) => setDriverStatus(e.target.value)}>
               <option value="">All drivers</option>
               <option value="ACTIVE">Active</option>
@@ -351,7 +353,7 @@ export function DashboardView({
 
       <section className="card p-4">
         <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
-          <h3 className="font-display text-base font-semibold tracking-tight">Route overview</h3>
+          <h3 className="font-display text-base font-semibold tracking-tight">{t("Route overview")}</h3>
           <input className="input w-full sm:w-56" aria-label="Search routes" placeholder="Search code or name" value={routeQ} onChange={(e) => setRouteQ(e.target.value)} />
         </div>
         {!routeRows.length ? <EmptyState title="No routes" body="No routes are available for this view." /> : (
@@ -385,7 +387,7 @@ export function DashboardView({
 
       <div className="grid gap-4 lg:grid-cols-2">
         <section className="card p-4">
-          <h3 className="font-display mb-3 text-base font-semibold tracking-tight">Recent alerts / compliance</h3>
+          <h3 className="font-display mb-3 text-base font-semibold tracking-tight">{t("Recent alerts / compliance")}</h3>
           {!activity?.alerts.length && !activity?.complianceEvents.length ? (
             <p className="text-sm text-slate-500">No recent events.</p>
           ) : (
@@ -406,7 +408,7 @@ export function DashboardView({
         </section>
         {showAudit && (
           <section className="card p-4">
-            <h3 className="font-display mb-3 text-base font-semibold tracking-tight">Recent administrative activity</h3>
+            <h3 className="font-display mb-3 text-base font-semibold tracking-tight">{t("Recent administrative activity")}</h3>
             {!activity?.audit.length ? <p className="text-sm text-slate-500">No audit rows.</p> : (
               <ul className="space-y-2 text-sm">
                 {activity.audit.map((row) => (

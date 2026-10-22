@@ -6,9 +6,11 @@ import { Camera, Keyboard } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { ErrorState } from "@/components/StatCard";
 import { boardedBusPath, parseBusQrPayload } from "@/lib/qrBus";
+import { useI18n } from "@/lib/i18n";
 
 export function PassengerQrScan() {
   const router = useRouter();
+  const { t } = useI18n();
   const scannerId = useId().replace(/:/g, "");
   const elementId = `passenger-qr-reader-${scannerId}`;
   const scannerRef = useRef<{ stop: () => Promise<void> } | null>(null);
@@ -92,7 +94,7 @@ export function PassengerQrScan() {
         <section className="card overflow-hidden p-3 sm:p-4">
           <div className="mb-3 flex items-center gap-2 text-sm font-medium">
             <Camera className="h-4 w-4 text-brand-600" aria-hidden />
-            Camera scan
+            {t("Camera scan")}
             {scanning && <span className="text-xs font-normal text-[var(--text-muted)]">· looking for QR…</span>}
           </div>
           <div
@@ -109,7 +111,7 @@ export function PassengerQrScan() {
         <section className="card space-y-3 p-4 sm:p-6">
           <div className="flex items-center gap-2 text-sm font-medium">
             <Keyboard className="h-4 w-4 text-brand-600" aria-hidden />
-            Enter code manually
+            {t("Enter code manually")}
           </div>
           <label className="block text-sm" htmlFor="qr-manual">
             Bus QR link or token
@@ -130,7 +132,7 @@ export function PassengerQrScan() {
               goToBus(manual);
             }}
           >
-            Open bus details
+            {t("Open bus details")}
           </button>
           <p className="text-xs text-[var(--text-muted)]">
             Demo tip: open any vehicle in Admin/Owner → Buses, copy its QR link, and paste it here.
