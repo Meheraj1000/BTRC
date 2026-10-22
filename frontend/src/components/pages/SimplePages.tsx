@@ -267,7 +267,7 @@ export function ComplaintForm({ allow }: { allow: RoleCode[] }) {
         </select>
         <textarea className="input min-h-28" required minLength={8} value={description} onChange={(e) => setDescription(e.target.value)} placeholder={t("Describe what happened")} />
         <button className="btn btn-primary">{t("Submit")}</button>
-        {msg && <p className="text-sm text-emerald-700">{msg}</p>}
+        {msg && <p className="text-sm text-emerald-700">{t(msg)}</p>}
       </form>
     </AppShell>
   );
@@ -303,7 +303,7 @@ export function DriverOps() {
             {t("End trip")}
           </button>
         </div>
-        {msg && <p className="text-sm text-emerald-700">{msg}</p>}
+        {msg && <p className="text-sm text-emerald-700">{t(msg)}</p>}
         {trip && <pre className="overflow-auto rounded-xl bg-[var(--surface-secondary)] p-3 text-xs">{JSON.stringify(trip, null, 2)}</pre>}
       </div>
     </AppShell>

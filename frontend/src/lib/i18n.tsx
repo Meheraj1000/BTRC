@@ -1,6 +1,11 @@
 "use client";
 
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { packDash } from "./i18n/pack-dash";
+import { packErrors } from "./i18n/pack-errors";
+import { packDesks } from "./i18n/pack-desks";
+import { packOps } from "./i18n/pack-ops";
+import { packPassenger } from "./i18n/pack-passenger";
 
 export type Locale = "en" | "bn";
 
@@ -236,6 +241,15 @@ const bn: Record<string, string> = {
   "English": "English",
 };
 
+const dictionary: Record<string, string> = {
+  ...packDesks,
+  ...packPassenger,
+  ...packOps,
+  ...packDash,
+  ...packErrors,
+  ...bn,
+};
+
 type I18nValue = {
   locale: Locale;
   setLocale: (locale: Locale) => void;
@@ -270,7 +284,7 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
     return {
       locale,
       setLocale: setLocaleState,
-      t: (text: string) => (locale === "bn" ? bn[text] ?? text : text),
+      t: (text: string) => (locale === "bn" ? dictionary[text] ?? text : text),
     };
   }, [locale]);
 
@@ -287,6 +301,11 @@ export function useI18n() {
     };
   }
   return ctx;
+}
+
+export function AuthLoading() {
+  const { t } = useI18n();
+  return <div className="auth-shell text-sm text-slate-300">{t("Loading…")}</div>;
 }
 
 export function LanguageToggle({ invert = false }: { invert?: boolean }) {

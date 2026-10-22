@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { BrandMark } from "@/components/BrandMark";
 import { homeFor, useAuth } from "@/lib/auth";
-import { LanguageToggle, useI18n } from "@/lib/i18n";
+import { AuthLoading, LanguageToggle, useI18n } from "@/lib/i18n";
 
 function safeNext(value: string | null) {
   if (!value || !value.startsWith("/") || value.startsWith("//")) return null;
@@ -86,7 +86,7 @@ function LoginForm() {
           />
           {error && (
             <p className="mt-3 rounded-lg bg-[var(--error-bg)] px-3 py-2 text-sm text-[var(--error)]" role="alert">
-              {error}
+              {t(error)}
             </p>
           )}
           <button className="btn btn-primary mt-5 w-full" disabled={busy}>
@@ -116,7 +116,7 @@ function LoginForm() {
                 }`}
                 onClick={() => setEmail(e)}
               >
-                {r}
+                {t(r)}
               </button>
             ))}
           </div>
@@ -129,7 +129,7 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div className="auth-shell text-sm text-slate-300">Loading…</div>}>
+    <Suspense fallback={<AuthLoading />}>
       <LoginForm />
     </Suspense>
   );

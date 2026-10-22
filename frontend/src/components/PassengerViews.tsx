@@ -421,7 +421,7 @@ export function PassengerComplaints() {
         </select>
         <textarea className="input min-h-28" required minLength={8} value={description} onChange={(e) => setDescription(e.target.value)} placeholder={t("Describe what happened. Do not include unnecessary personal data.")} />
         <button className="btn btn-primary">{t("Submit")}</button>
-        {msg && <p className="text-sm text-emerald-700">{msg}</p>}
+        {msg && <p className="text-sm text-emerald-700">{t(msg)}</p>}
       </form>
       <h2 className="mb-2 text-sm font-semibold">{t("Your complaints")}</h2>
       {!items.length ? <EmptyState title={t("No complaints")} body={t("You have not submitted a complaint in this deployment.")} /> : (
@@ -762,7 +762,7 @@ export function PassengerProfile() {
         <input className="input" type="password" aria-label={t("Current password")} placeholder={t("Current password (only to change password)")} value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} />
         <input className="input" type="password" aria-label={t("New password")} placeholder={t("New password")} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
         <button className="btn btn-primary">{t("Save")}</button>
-        {msg && <p className="text-sm text-emerald-700">{msg}</p>}
+        {msg && <p className="text-sm text-emerald-700">{t(msg)}</p>}
       </form>
     </AppShell>
   );

@@ -198,6 +198,4 @@ export const packPassenger: Record<string, string> = {
     "অভিযোগ বা জিজ্ঞাসা লিখুন। অপ্রয়োজনীয় ব্যক্তিগত তথ্য দেবেন না।",
   "Submitted. Track status under Passenger → Complaints.":
     "জমা হয়েছে। যাত্রী → অভিযোগে অবস্থা দেখুন।",
-  "View my complaints": "আমার অভিযোগ দেখুন",
-  "Open my SOS": "আমার এসওএস খুলুন",
 };

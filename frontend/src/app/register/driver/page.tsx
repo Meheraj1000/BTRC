@@ -112,7 +112,7 @@ export default function DriverRegisterPage() {
           onChange={(e) => setLicenseNumber(e.target.value)}
           required
           minLength={4}
-          placeholder="e.g. DHAKA-DL-12345"
+          placeholder={t("e.g. DHAKA-DL-12345")}
         />
 
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
@@ -152,12 +152,12 @@ export default function DriverRegisterPage() {
 
         {error && (
           <p className="mt-3 rounded-lg bg-[var(--error-bg)] px-3 py-2 text-sm text-[var(--error)]" role="alert">
-            {error}
+            {t(error)}
           </p>
         )}
         {done && (
           <p className="mt-3 rounded-lg px-3 py-2 text-sm" style={{ background: "var(--success-bg)", color: "var(--success)" }} role="status">
-            {done}
+            {t(done)}
           </p>
         )}
 

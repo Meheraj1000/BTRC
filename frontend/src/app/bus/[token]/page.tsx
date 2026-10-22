@@ -406,7 +406,7 @@ export default function PublicBusQrPage() {
                   <button className="btn btn-primary w-full" disabled={busy} type="submit">
                     {busy ? t("Submitting…") : t("Submit")}
                   </button>
-                  {msg && <p className="text-sm text-emerald-700">{msg}</p>}
+                  {msg && <p className="text-sm text-emerald-700">{t(msg)}</p>}
                 </form>
               )}
             </section>

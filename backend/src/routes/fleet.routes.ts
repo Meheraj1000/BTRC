@@ -9,7 +9,7 @@ import {
 } from "@prisma/client";
 import { Router } from "express";
 import { z } from "zod";
-import { ok } from "../lib/apiResponse.js";
+import { ApiError, ok } from "../lib/apiResponse.js";
 import { prisma } from "../lib/prisma.js";
 import { auditAction } from "../middlewares/audit.js";
 import { authRequired } from "../middlewares/auth.js";
@@ -45,12 +45,69 @@ const router = Router();
 router.use(authRequired);
 
 // ---- Companies ----
+const blankToUndefined = (value: unknown) => (typeof value === "string" && value.trim() === "" ? undefined : value);
+
+const companyRegistration = z
+  .string()
+  .trim()
+  .min(3)
+  .max(40)
+  .regex(/^[A-Za-z0-9][A-Za-z0-9-]{1,38}[A-Za-z0-9]$/, "Use 3–40 letters, numbers, or hyphens")
+  .transform((value) => value.toUpperCase());
+
+const companyCreateSchema = z.object({
+  name: z.string().trim().min(2).max(120),
+  registration: companyRegistration,
+  phone: z.preprocess(blankToUndefined, z.string().trim().max(20).optional()),
+  email: z.preprocess(blankToUndefined, z.string().trim().email().max(120).optional()),
+  address: z.preprocess(blankToUndefined, z.string().trim().max(200).optional()),
+  city: z.preprocess(blankToUndefined, z.string().trim().max(80).optional()),
+  ownerUserId: z.preprocess(blankToUndefined, z.string().uuid().optional()),
+});
+
+const companyUpdateSchema = z.object({
+  name: z.string().trim().min(2).max(120).optional(),
+  registration: companyRegistration.optional(),
+  phone: z.preprocess(blankToUndefined, z.string().trim().max(20).optional()),
+  email: z.preprocess(blankToUndefined, z.string().trim().email().max(120).optional()),
+  address: z.preprocess(blankToUndefined, z.string().trim().max(200).optional()),
+  city: z.preprocess(blankToUndefined, z.string().trim().max(80).optional()),
+  status: z.nativeEnum(UserStatus).optional(),
+  ownerUserId: z.preprocess(
+    (value) => (value === "" ? null : value),
+    z.string().uuid().nullable().optional(),
+  ),
+}).refine((value) => Object.keys(value).length > 0, { message: "No fields to update" });
+
+async function assertOwnerAvailable(ownerUserId: string | null | undefined, exceptCompanyId?: string) {
+  if (!ownerUserId) return;
+  const user = await prisma.user.findFirst({
+    where: { id: ownerUserId, deletedAt: null },
+    include: { userRoles: { include: { role: true } } },
+  });
+  if (!user) throw new ApiError("Selected owner was not found", 400);
+  const isOwner = user.userRoles.some((row) => row.role.code === "TRANSPORT_OWNER");
+  if (!isOwner) throw new ApiError("Selected user is not a transport owner", 400);
+  const taken = await prisma.transportCompany.findFirst({
+    where: {
+      ownerUserId,
+      deletedAt: null,
+      ...(exceptCompanyId ? { id: { not: exceptCompanyId } } : {}),
+    },
+    select: { id: true },
+  });
+  if (taken) throw new ApiError("That owner already manages another company", 409);
+}
+
 router.get("/companies", requirePermission("companies.read"), async (req, res, next) => {
   try {
     const companyId = await ownerCompanyId(req);
     const items = await prisma.transportCompany.findMany({
-      where: { deletedAt: null, id: companyId },
-      include: { _count: { select: { buses: true, drivers: true } } },
+      where: { deletedAt: null, ...(companyId ? { id: companyId } : {}) },
+      include: {
+        owner: { select: { id: true, fullName: true, email: true } },
+        _count: { select: { buses: true, drivers: true, routes: true } },
+      },
       orderBy: { name: "asc" },
     });
     return ok(res, items);
@@ -62,19 +119,18 @@ router.get("/companies", requirePermission("companies.read"), async (req, res, n
 router.post(
   "/companies",
   requirePermission("companies.manage"),
-  validate(z.object({
-    name: z.string().min(2),
-    registration: z.string().min(3),
-    phone: z.string().optional(),
-    email: z.string().email().optional(),
-    address: z.string().optional(),
-    city: z.string().optional(),
-    ownerUserId: z.string().uuid().optional(),
-  })),
+  validate(companyCreateSchema),
   auditAction("company.create", "TransportCompany"),
   async (req, res, next) => {
     try {
-      const company = await prisma.transportCompany.create({ data: req.body });
+      await assertOwnerAvailable(req.body.ownerUserId);
+      const company = await prisma.transportCompany.create({
+        data: req.body,
+        include: {
+          owner: { select: { id: true, fullName: true, email: true } },
+          _count: { select: { buses: true, drivers: true, routes: true } },
+        },
+      });
       return ok(res, company, "Company created", 201);
     } catch (err) {
       next(err);
@@ -82,14 +138,29 @@ router.post(
   },
 );
 
-router.put("/companies/:id", requirePermission("companies.manage"), auditAction("company.update", "TransportCompany"), async (req, res, next) => {
-  try {
-    const company = await prisma.transportCompany.update({ where: { id: param(req, "id") }, data: req.body });
-    return ok(res, company, "Company updated");
-  } catch (err) {
-    next(err);
-  }
-});
+router.put(
+  "/companies/:id",
+  requirePermission("companies.manage"),
+  validate(companyUpdateSchema),
+  auditAction("company.update", "TransportCompany"),
+  async (req, res, next) => {
+    try {
+      const id = param(req, "id");
+      await assertOwnerAvailable(req.body.ownerUserId, id);
+      const company = await prisma.transportCompany.update({
+        where: { id },
+        data: req.body,
+        include: {
+          owner: { select: { id: true, fullName: true, email: true } },
+          _count: { select: { buses: true, drivers: true, routes: true } },
+        },
+      });
+      return ok(res, company, "Company updated");
+    } catch (err) {
+      next(err);
+    }
+  },
+);
 
 // ---- Buses ----
 const busListQuery = z.object({

@@ -92,6 +92,25 @@ function BangladeshView({
   return null;
 }
 
+function ZoomLabels() {
+  const map = useMap();
+  const { t } = useI18n();
+  useEffect(() => {
+    const root = map.getContainer();
+    const zin = root.querySelector(".leaflet-control-zoom-in");
+    const zout = root.querySelector(".leaflet-control-zoom-out");
+    if (zin) {
+      zin.setAttribute("title", t("Zoom in"));
+      zin.setAttribute("aria-label", t("Zoom in"));
+    }
+    if (zout) {
+      zout.setAttribute("title", t("Zoom out"));
+      zout.setAttribute("aria-label", t("Zoom out"));
+    }
+  }, [map, t]);
+  return null;
+}
+
 function MapResize() {
   const map = useMap();
   useEffect(() => {
@@ -169,12 +188,13 @@ export default function LiveMapInner({
           style={{ height: "100%", width: "100%", background: "#e7f0eb" }}
         >
           <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> · Bangladesh'
+            attribution={`&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> · ${t("Bangladesh")}`}
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             bounds={BD_BOUNDS}
             noWrap
           />
           <MapResize />
+          <ZoomLabels />
           <BangladeshView points={points} onReady={() => setViewReady(true)} />
           {bdRoutes.map((r) => (
             <Polyline

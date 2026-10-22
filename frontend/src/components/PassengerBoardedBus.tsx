@@ -485,7 +485,7 @@ export function PassengerBoardedBus({ token }: { token: string }) {
                   <button className="btn btn-primary w-full" disabled={busy} type="submit">
                     {busy ? t("Submitting…") : t("Submit complaint")}
                   </button>
-                  {msg && <p className="text-sm text-emerald-700">{msg}</p>}
+                  {msg && <p className="text-sm text-emerald-700">{t(msg)}</p>}
                   <Link className="btn btn-ghost w-full" href={`/passenger/complaints?busId=${bus.id}`}>
                     {t("View my complaints")}
                   </Link>

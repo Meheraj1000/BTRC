@@ -121,7 +121,7 @@ export function AppShell({
               <X className="h-5 w-5" />
             </button>
           </div>
-          <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto overscroll-contain px-2 py-3 pb-[max(2rem,env(safe-area-inset-bottom))] sm:px-3 sm:py-4" aria-label="Primary">
+          <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto overscroll-contain px-2 py-3 pb-[max(2rem,env(safe-area-inset-bottom))] sm:px-3 sm:py-4" aria-label={t("Primary")}>
             <p className="section-label mb-2 px-3 text-slate-500">{t("Navigation")}</p>
             {items.map((item) => {
               const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
