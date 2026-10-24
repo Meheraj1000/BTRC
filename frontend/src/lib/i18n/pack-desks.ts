@@ -262,8 +262,6 @@ export const packDesks: Record<string, string> = {
     "কোম্পানি নিবন্ধন ৩–৪০টি অক্ষর, সংখ্যা বা হাইফেন হতে হবে (যেমন DHAKA-COACH-01)।",
   "Registration:": "নিবন্ধন:",
   "City:": "শহর:",
-  "Phone:": "ফোন:",
-  "Email:": "ইমেইল:",
   "Address:": "ঠিকানা:",
   "Owner:": "মালিক:",
   "Buses:": "বাস:",

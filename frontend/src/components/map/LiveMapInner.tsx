@@ -13,6 +13,7 @@ import {
   isInBangladesh,
 } from "@/lib/geo/bangladesh";
 import { useI18n } from "@/lib/i18n";
+import { routingWaypoints } from "@/lib/roadWaypoints";
 import type { BusLive } from "@/lib/types";
 
 type RouteLine = {
@@ -111,6 +112,102 @@ function ZoomLabels() {
   return null;
 }
 
+function RoadRoutes({ routes }: { routes: RouteLine[] }) {
+  const map = useMap();
+  const routesRef = useRef(routes);
+  routesRef.current = routes;
+  const [failedIds, setFailedIds] = useState<string[]>([]);
+
+  const routeKey = useMemo(
+    () =>
+      routes
+        .map((route) => {
+          const waypoints = routingWaypoints(route.polyline);
+          return `${route.id}:${waypoints.map((p) => `${p.lat.toFixed(4)},${p.lng.toFixed(4)}`).join(";")}`;
+        })
+        .join("|"),
+    [routes],
+  );
+
+  useEffect(() => {
+    let disposed = false;
+    const controls: L.Routing.Control[] = [];
+    const failed = new Set<string>();
+    setFailedIds([]);
+
+    (async () => {
+      (window as unknown as { L: typeof L }).L = L;
+      await import("leaflet-routing-machine");
+      if (disposed || !L.Routing) return;
+
+      for (const route of routesRef.current) {
+        const waypoints = routingWaypoints(route.polyline);
+        if (waypoints.length < 2) continue;
+        const control = L.Routing.control({
+          waypoints: waypoints.map((p) => L.latLng(p.lat, p.lng)),
+          router: L.Routing.osrmv1({
+            serviceUrl: "https://router.project-osrm.org/route/v1",
+            profile: "driving",
+            suppressDemoServerWarning: true,
+            timeout: 8000,
+          }),
+          lineOptions: {
+            styles: [
+              { color: brand.primaryActive, opacity: 0.28, weight: 9 },
+              { color: brand.primary, opacity: 0.9, weight: 4 },
+            ],
+            addWaypoints: false,
+            extendToWaypoints: false,
+            missingRouteTolerance: 0,
+          },
+          waypointMode: "snap",
+          addWaypoints: false,
+          fitSelectedRoutes: false,
+          routeWhileDragging: false,
+          showAlternatives: false,
+          show: false,
+          collapsible: false,
+          containerClassName: "nirapad-routing-hidden",
+          createMarker: () => false,
+          draggableWaypoints: false,
+        } as L.Routing.RoutingControlOptions & L.Routing.PlanOptions);
+        control.on("routingerror", () => {
+          failed.add(route.id);
+          if (!disposed) setFailedIds([...failed]);
+        });
+        if (disposed) return;
+        control.addTo(map);
+        controls.push(control);
+      }
+    })().catch(() => {
+      if (!disposed) setFailedIds(routesRef.current.map((route) => route.id));
+    });
+
+    return () => {
+      disposed = true;
+      controls.forEach((control) => {
+        map.removeControl(control);
+      });
+    };
+  }, [map, routeKey]);
+
+  if (!failedIds.length) return null;
+  const failed = new Set(failedIds);
+  return (
+    <>
+      {routes
+        .filter((route) => failed.has(route.id) && route.polyline.length > 1)
+        .map((route) => (
+          <Polyline
+            key={route.id}
+            positions={route.polyline.map((p) => [p.lat, p.lng]) as Array<[number, number]>}
+            pathOptions={{ color: brand.primaryActive, weight: 4, opacity: 0.7 }}
+          />
+        ))}
+    </>
+  );
+}
+
 function MapResize() {
   const map = useMap();
   useEffect(() => {
@@ -196,13 +293,7 @@ export default function LiveMapInner({
           <MapResize />
           <ZoomLabels />
           <BangladeshView points={points} onReady={() => setViewReady(true)} />
-          {bdRoutes.map((r) => (
-            <Polyline
-              key={r.id}
-              positions={r.polyline.map((p) => [p.lat, p.lng]) as Array<[number, number]>}
-              pathOptions={{ color: brand.primaryActive, weight: 4, opacity: 0.7 }}
-            />
-          ))}
+          <RoadRoutes routes={bdRoutes} />
           {bdRoutes.flatMap((r) =>
             (r.stops ?? []).map((stop) => (
               <CircleMarker

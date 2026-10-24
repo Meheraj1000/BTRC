@@ -4,6 +4,7 @@ import { prisma } from "../lib/prisma.js";
 import { ApiError } from "../lib/apiResponse.js";
 import { broadcastAlert, broadcastRouteStatus } from "../lib/socket.js";
 import { distanceToPolylineMeters, parsePolyline } from "../utils/geo.js";
+import { deviationAgainstRoad } from "../utils/roadRoute.js";
 import { trackingState } from "../utils/gpsQuality.js";
 import { classifyDistance, complianceTransitioned, nextComplianceState } from "../utils/routeCompliance.js";
 import { projectComplianceState } from "../utils/routeDto.js";
@@ -95,7 +96,9 @@ export async function evaluateAndPersistCompliance(input: {
   }
 
   const line = parsePolyline(input.polyline);
-  const deviationM = line.length ? distanceToPolylineMeters({ lat: input.latitude, lng: input.longitude }, line) : Number.POSITIVE_INFINITY;
+  const point = { lat: input.latitude, lng: input.longitude };
+  const chordM = line.length ? distanceToPolylineMeters(point, line) : Number.POSITIVE_INFINITY;
+  const deviationM = await deviationAgainstRoad(point, line, chordM, thresholds.offMeters);
   const sample = classifyDistance(deviationM, thresholds);
   const next = nextComplianceState(
     { status: fromStatus, consecutiveOff, consecutiveOn },

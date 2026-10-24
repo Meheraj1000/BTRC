@@ -230,7 +230,6 @@ const bn: Record<string, string> = {
   "Vehicle": "যান",
   "Origin": "উৎপত্তি",
   "Destination": "গন্তব্য",
-  "Operator": "অপারেটর",
   "Route": "রুট",
   "Serial": "সিরিয়াল",
   "Vendor": "প্রস্তুতকারক",

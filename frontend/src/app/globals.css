@@ -105,6 +105,11 @@ video {
   transition: opacity 0.12s ease-out;
 }
 
+.leaflet-routing-container,
+.nirapad-routing-hidden {
+  display: none !important;
+}
+
 .leaflet-control-attribution {
   max-width: min(100%, 16rem);
   font-size: 9px !important;
@@ -366,7 +371,7 @@ table.data tbody tr:hover td {
 .map-frame {
   width: 100%;
   max-width: 100%;
-  height: clamp(14rem, 50dvh, 22rem);
+  height: clamp(22rem, 70dvh, 40rem);
   overflow: hidden;
   border-radius: 1rem;
   border: 1px solid var(--border);
@@ -374,13 +379,13 @@ table.data tbody tr:hover td {
 
 @media (min-width: 768px) {
   .map-frame {
-    height: clamp(18rem, 55vh, 34rem);
+    height: clamp(28rem, 74vh, 48rem);
   }
 }
 
 @media (min-width: 1280px) {
   .map-frame {
-    height: clamp(22rem, 58vh, 40rem);
+    height: min(78vh, 56rem);
   }
 }
 
@@ -522,6 +527,6 @@ button:focus-visible {
   }
 
   .map-frame {
-    height: clamp(12rem, 48dvh, 18rem);
+    height: clamp(18rem, 62dvh, 26rem);
   }
 }

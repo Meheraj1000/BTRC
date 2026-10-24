@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import "leaflet/dist/leaflet.css";
+import "leaflet-routing-machine/dist/leaflet-routing-machine.css";
 import { useI18n } from "@/lib/i18n";
 import type { BusLive } from "@/lib/types";
 
