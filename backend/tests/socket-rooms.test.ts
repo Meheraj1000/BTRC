@@ -27,5 +27,8 @@ describe("Socket.IO room authorization", () => {
     expect(canJoinSocketRoom("company:co-b", owner)).toBe(false);
     expect(canJoinSocketRoom("company:co-b", { sub: "admin", roles: ["SUPER_ADMIN"] })).toBe(true);
     expect(canJoinSocketRoom("company:co-a")).toBe(false);
+    expect(canJoinSocketRoom("place:Dhaka", { sub: "u-police", roles: ["POLICE"] })).toBe(false);
+    expect(canJoinSocketRoom("place:Dhaka", { sub: "u-police", roles: ["POLICE"], places: ["Dhaka"] })).toBe(true);
+    expect(canJoinSocketRoom("place:Sylhet", { sub: "u-police", roles: ["POLICE"], places: ["Dhaka"] })).toBe(false);
   });
 });

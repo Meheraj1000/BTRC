@@ -296,10 +296,27 @@ async function main() {
     return user;
   }
 
+  async function assignPlace(userId: string, city: string) {
+    await prisma.policeArea.upsert({
+      where: { userId_city: { userId, city } },
+      update: {},
+      create: { userId, city },
+    });
+  }
+
   const admin = await upsertUser("admin@nirapad.gov.bd", "System Administrator", "SUPER_ADMIN", "01711000001");
   await upsertUser("government@nirapad.gov.bd", "Ministry Observer (Demo)", "GOVERNMENT", "01711000002");
   await upsertUser("brta@nirapad.gov.bd", "BRTA Desk Officer (Demo)", "BRTA", "01711000003");
-  await upsertUser("police@nirapad.gov.bd", "DMP Control Room (Demo)", "POLICE", "01711000004");
+  const policeDhaka = await upsertUser("police@nirapad.gov.bd", "DMP Control Room (Demo)", "POLICE", "01711000004");
+  const policeCtg = await upsertUser("police.ctg@nirapad.gov.bd", "CMP Control Room (Demo)", "POLICE", "01711000005");
+  const policeSylhet = await upsertUser("police.sylhet@nirapad.gov.bd", "SMP Control Room (Demo)", "POLICE", "01711000006");
+  const policeRajshahi = await upsertUser("police.rajshahi@nirapad.gov.bd", "RMP Control Room (Demo)", "POLICE", "01711000007");
+  const policeKhulna = await upsertUser("police.khulna@nirapad.gov.bd", "KMP Control Room (Demo)", "POLICE", "01711000008");
+  await assignPlace(policeDhaka.id, "Dhaka");
+  await assignPlace(policeCtg.id, "Chattogram");
+  await assignPlace(policeSylhet.id, "Sylhet");
+  await assignPlace(policeRajshahi.id, "Rajshahi");
+  await assignPlace(policeKhulna.id, "Khulna");
 
   const owner1 = await upsertUser("owner.greenline@demo.bd", "Green Line Owner (Demo)", "TRANSPORT_OWNER", "01711000011");
   const owner2 = await upsertUser("owner.soudia@demo.bd", "Soudia Owner (Demo)", "TRANSPORT_OWNER", "01711000012");
@@ -473,6 +490,74 @@ async function main() {
     buses.push({ bus: ensured, route, driver, device });
   }
 
+  const extraFleet = [
+    ["CTG-METRO-A-DEMO-33", company3.id, "CTG-05"],
+    ["CTG-METRO-A-DEMO-34", company3.id, "CTG-05"],
+    ["SYL-DEMO-42", company1.id, "SYL-06"],
+    ["SYL-DEMO-43", company1.id, "SYL-06"],
+    ["RAJ-DEMO-52", company2.id, "RAJ-07"],
+    ["RAJ-DEMO-53", company2.id, "RAJ-07"],
+    ["KHL-DEMO-62", company3.id, "KHL-08"],
+    ["KHL-DEMO-63", company3.id, "KHL-08"],
+  ] as const;
+  for (let i = 0; i < extraFleet.length; i += 1) {
+    const [reg, companyId, routeCode] = extraFleet[i];
+    const route = routeRows.find((row) => row.code === routeCode);
+    if (!route) continue;
+    const driver = drivers[i % drivers.length];
+    const device = await prisma.gpsDevice.upsert({
+      where: { serialNumber: `SIM-GPS-P${String(i + 1).padStart(2, "0")}` },
+      update: {},
+      create: {
+        serialNumber: `SIM-GPS-P${String(i + 1).padStart(2, "0")}`,
+        vendor: "DemoSim",
+        firmware: "sim-1.0",
+        dataSource: GpsDataSource.SIMULATION,
+        notes: "Place-scoped demo tracker — not a physical device",
+      },
+    });
+    const bus = await prisma.bus.upsert({
+      where: { registrationNo: reg },
+      update: { routeId: route.id, driverId: driver.id, gpsDeviceId: device.id, companyId, operationalStatus: "ACTIVE" },
+      create: {
+        registrationNo: reg,
+        qrToken: newQrToken(),
+        vehicleType: i % 2 === 0 ? VehicleType.STANDARD_BUS : VehicleType.MINIBUS,
+        manufacturer: "Hino",
+        model: "Demo Fleet",
+        capacity: 36,
+        companyId,
+        routeId: route.id,
+        driverId: driver.id,
+        gpsDeviceId: device.id,
+        fitnessStatus: "FIT",
+        registrationStatus: "ACTIVE",
+        insuranceStatus: "VALID",
+        operationalStatus: "ACTIVE",
+        yearOfManufacture: 2019,
+      },
+    });
+    const poly = route.polyline as unknown as Point[];
+    const pt = poly[Math.min(i, poly.length - 1)];
+    await prisma.gpsLatestLocation.upsert({
+      where: { busId: bus.id },
+      update: { latitude: pt.lat, longitude: pt.lng, routeId: route.id, timestamp: new Date() },
+      create: {
+        busId: bus.id,
+        deviceId: device.id,
+        routeId: route.id,
+        driverId: driver.id,
+        latitude: pt.lat,
+        longitude: pt.lng,
+        speed: 22,
+        heading: 90,
+        timestamp: new Date(),
+        source: "SIMULATION",
+      },
+    });
+    buses.push({ bus, route, driver, device });
+  }
+
   for (const { bus, route, driver } of buses) {
     const poly = route.polyline as unknown as Point[];
     const idx = Math.floor(Math.random() * poly.length);
@@ -546,14 +631,89 @@ async function main() {
     },
   });
 
-  await prisma.alert.create({
-    data: {
-      type: AlertType.SYSTEM,
-      severity: "LOW",
-      message: "Demo environment initialized. GPS feed is SIMULATION unless GPS_SOURCE_MODE=DEVICE.",
-      dataSource: "SIMULATED",
-    },
-  });
+  const systemMessage = "Demo environment initialized. GPS feed is SIMULATION unless GPS_SOURCE_MODE=DEVICE.";
+  const systemAlert = await prisma.alert.findFirst({ where: { message: systemMessage } });
+  if (!systemAlert) {
+    await prisma.alert.create({
+      data: {
+        type: AlertType.SYSTEM,
+        severity: "LOW",
+        message: systemMessage,
+        dataSource: "SIMULATED",
+      },
+    });
+  }
+
+  async function busByReg(registrationNo: string) {
+    return prisma.bus.findUnique({ where: { registrationNo }, select: { id: true, routeId: true, driverId: true } });
+  }
+  async function ensureAlert(message: string, registrationNo: string, type: AlertType) {
+    const bus = await busByReg(registrationNo);
+    if (!bus) return;
+    const existing = await prisma.alert.findFirst({ where: { message, busId: bus.id } });
+    if (existing) return;
+    await prisma.alert.create({
+      data: {
+        type,
+        severity: "HIGH",
+        status: "OPEN",
+        busId: bus.id,
+        routeId: bus.routeId,
+        driverId: bus.driverId,
+        message,
+        dataSource: "SIMULATED",
+      },
+    });
+  }
+  async function ensureComplaint(reference: string, registrationNo: string, subject: string, description: string) {
+    const bus = await busByReg(registrationNo);
+    if (!bus) return;
+    await prisma.complaint.upsert({
+      where: { reference },
+      update: { status: "PENDING", busId: bus.id, routeId: bus.routeId },
+      create: {
+        passengerId: passengerUser.id,
+        busId: bus.id,
+        routeId: bus.routeId,
+        reference,
+        category: ComplaintCategory.DRIVER_BEHAVIOR,
+        subject,
+        description,
+        status: "PENDING",
+      },
+    });
+  }
+  async function ensureSos(message: string, registrationNo: string) {
+    const bus = await busByReg(registrationNo);
+    if (!bus) return;
+    const existing = await prisma.sosRequest.findFirst({ where: { message, busId: bus.id } });
+    if (existing) return;
+    await prisma.sosRequest.create({
+      data: {
+        userId: passengerUser.id,
+        roleHint: "PASSENGER",
+        busId: bus.id,
+        routeId: bus.routeId,
+        driverId: bus.driverId,
+        message,
+        status: "OPEN",
+        locationSource: "VEHICLE",
+      },
+    });
+  }
+
+  await ensureAlert("Demo Dhaka: open route deviation near Farmgate", "DHAKA-METRO-D-DEMO-16", AlertType.ROUTE_DEVIATION);
+  await ensureSos("Demo Dhaka SOS: passenger requested help near Shahbagh", "DHAKA-METRO-D-DEMO-13");
+  await ensureComplaint("CMP-SEED-CTG-001", "CTG-METRO-A-DEMO-31", "Overcrowding near GEC", "Demo complaint: the Chattogram bus was overcrowded near GEC Circle.");
+  await ensureAlert("Demo Chattogram: bus left the assigned road", "CTG-METRO-A-DEMO-32", AlertType.ROUTE_DEVIATION);
+  await ensureSos("Demo Chattogram SOS: help requested on Agrabad road", "CTG-METRO-A-DEMO-33");
+  await ensureAlert("Demo Sylhet: speed above the route limit", "SYL-DEMO-41", AlertType.OVERSPEED);
+  await ensureComplaint("CMP-SEED-SYL-001", "SYL-DEMO-42", "Rude stop at Zindabazar", "Demo complaint: the Sylhet bus skipped the Zindabazar stop.");
+  await ensureSos("Demo Rajshahi SOS: passenger requested help at Shaheb Bazar", "RAJ-DEMO-51");
+  await ensureAlert("Demo Rajshahi: route drift near RU", "RAJ-DEMO-52", AlertType.ROUTE_DEVIATION);
+  await ensureComplaint("CMP-SEED-KHL-001", "KHL-DEMO-61", "Unsafe stop at Rupsha", "Demo complaint: the Khulna bus stopped outside the marked Rupsha point.");
+  await ensureAlert("Demo Khulna: bus marked with an open deviation", "KHL-DEMO-62", AlertType.ROUTE_DEVIATION);
+  await ensureSos("Demo Khulna SOS: help requested near Sonadanga", "KHL-DEMO-63");
 
   await prisma.systemSetting.createMany({
     data: [
@@ -578,7 +738,8 @@ async function main() {
 
   console.log("Seed complete.");
   console.log("Demo login password for all seeded accounts: Demo@12345");
-  console.log("Accounts: admin@nirapad.gov.bd, government@nirapad.gov.bd, brta@nirapad.gov.bd, police@nirapad.gov.bd,");
+  console.log("Accounts: admin@nirapad.gov.bd, government@nirapad.gov.bd, brta@nirapad.gov.bd,");
+  console.log("Police places: police@nirapad.gov.bd (Dhaka), police.ctg@nirapad.gov.bd, police.sylhet@nirapad.gov.bd, police.rajshahi@nirapad.gov.bd, police.khulna@nirapad.gov.bd");
   console.log("owner.greenline@demo.bd, driver.rahim@demo.bd, passenger.fatima@demo.bd");
 }
 

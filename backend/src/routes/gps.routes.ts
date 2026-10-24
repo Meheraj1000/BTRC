@@ -21,6 +21,7 @@ import { canSeeOperationalGps, projectGps, toPublicGpsDto } from "../utils/gpsDt
 import { openIssueBusIds } from "../services/busIssue.service.js";
 import { param } from "../utils/http.js";
 import { assertCanViewBus } from "../services/bus.service.js";
+import { policeCityScope } from "../utils/policeArea.js";
 import { ownerCompanyId, pagination } from "../utils/scope.js";
 
 async function ownerCompanyIfNeeded(req: Request) {
@@ -111,12 +112,25 @@ router.post("/location", gpsIngestLimiter, deviceKeyOrUser, validate(ingestSchem
   }
 });
 
+function inPolicePlaces<T extends { bus: { route: { city: string } | null } }>(rows: T[], cities: string[] | null) {
+  if (!cities) return rows;
+  const allowed = new Set(cities.map((city) => city.toLowerCase()));
+  return rows.filter((row) => {
+    const city = row.bus.route?.city;
+    return Boolean(city && allowed.has(city.toLowerCase()));
+  });
+}
+
 router.get("/live", gpsReadLimiter, optionalAuth, async (req, res, next) => {
   try {
     const ownerCompany = await ownerCompanyIfNeeded(req);
+    const cities = await policeCityScope(req);
     const latest = await getLatestLocations();
     const open = await openIssueBusIds();
-    const scoped = ownerCompany ? latest.filter((row) => row.bus.companyId === ownerCompany) : latest;
+    const scoped = inPolicePlaces(
+      ownerCompany ? latest.filter((row) => row.bus.companyId === ownerCompany) : latest,
+      cities,
+    );
     const items = scoped.map((row) => projectScoped(withIssueColor(row, open), req.user?.roles, ownerCompany));
     return ok(res, {
       projection: canSeeOperationalGps(req.user?.roles) ? "OPERATIONAL" : "PUBLIC",
@@ -139,7 +153,11 @@ router.get("/nearby", gpsReadLimiter, optionalAuth, async (req, res, next) => {
     const boxed = await getLatestLocationsNear(lat, lng, radius);
     const open = await openIssueBusIds();
     const ownerCompany = await ownerCompanyIfNeeded(req);
-    const scoped = ownerCompany ? boxed.filter((row) => row.bus.companyId === ownerCompany) : boxed;
+    const cities = await policeCityScope(req);
+    const scoped = inPolicePlaces(
+      ownerCompany ? boxed.filter((row) => row.bus.companyId === ownerCompany) : boxed,
+      cities,
+    );
     const items = scoped
       .map((row) => ({
         ...projectScoped(withIssueColor(row, open), req.user?.roles, ownerCompany),
@@ -168,6 +186,10 @@ router.get("/buses/:id/location", gpsReadLimiter, optionalAuth, async (req, res,
     if (ownerCompany && latest.bus.companyId !== ownerCompany) {
       throw new ApiError("You cannot access another operator's resources", 403);
     }
+    const cities = await policeCityScope(req);
+    if (cities && inPolicePlaces([latest], cities).length === 0) {
+      throw new ApiError("This bus is outside your assigned place", 403);
+    }
     const open = await openIssueBusIds();
     return ok(res, projectScoped(withIssueColor(latest, open), req.user?.roles, ownerCompany));
   } catch (err) {
@@ -179,7 +201,7 @@ router.get("/buses/:id/history", authRequired, requireOpsRole(), requirePermissi
   try {
     const bus = await prisma.bus.findFirst({
       where: { id: param(req, "id") },
-      select: { companyId: true, driverId: true },
+      select: { id: true, companyId: true, driverId: true },
     });
     if (!bus) throw new ApiError("Bus not found", 404);
     await assertCanViewBus(req, bus);

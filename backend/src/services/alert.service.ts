@@ -2,6 +2,7 @@ import { AlertSeverity, AlertStatus, AlertType, type Prisma, type RoleCode } fro
 import type { Request } from "express";
 import { ApiError } from "../lib/apiResponse.js";
 import { prisma } from "../lib/prisma.js";
+import { assertPolicePlace, placeBusOrPointFilter, placeRecordFilter, policeCityScope } from "../utils/policeArea.js";
 import { ownerCompanyId, pagination } from "../utils/scope.js";
 
 const alertInclude = {
@@ -78,6 +79,8 @@ export async function listAlerts(req: Request) {
       { route: { code: { contains: q, mode: "insensitive" } } },
     ];
   }
+  const cities = await policeCityScope(req);
+  if (cities) where.AND = [placeRecordFilter(cities)];
 
   const [rows, total] = await Promise.all([
     prisma.alert.findMany({
@@ -99,9 +102,17 @@ export async function listAlerts(req: Request) {
   };
 }
 
-export async function updateAlertStatus(id: string, status: AlertStatus) {
+export async function updateAlertStatus(id: string, status: AlertStatus, req?: Request) {
   const existing = await prisma.alert.findUnique({ where: { id } });
   if (!existing) throw new ApiError("Alert not found", 404);
+  if (req) {
+    await assertPolicePlace(req, {
+      busId: existing.busId,
+      routeId: existing.routeId,
+      latitude: existing.latitude == null ? null : Number(existing.latitude),
+      longitude: existing.longitude == null ? null : Number(existing.longitude),
+    });
+  }
   const row = await prisma.alert.update({
     where: { id },
     data: {
@@ -115,18 +126,23 @@ export async function updateAlertStatus(id: string, status: AlertStatus) {
 
 export async function listIncidents(req: Request) {
   const companyId = await ownerCompanyId(req).catch(() => undefined);
+  const cities = await policeCityScope(req);
   const canReadSos = (req.user?.roles ?? []).some((r) => ["SUPER_ADMIN", "GOVERNMENT", "POLICE"].includes(r));
   const alerts = await listAlerts(req);
+  const accidentWhere: Prisma.AccidentWhereInput = {};
+  if (companyId) accidentWhere.bus = { companyId };
+  if (cities) accidentWhere.AND = [placeBusOrPointFilter(cities)];
   const [sosItems, accidents] = await Promise.all([
     canReadSos
       ? prisma.sosRequest.findMany({
+        where: cities ? placeRecordFilter(cities) : undefined,
         orderBy: { createdAt: "desc" },
         take: 20,
         include: { user: { select: { fullName: true } } },
       })
       : Promise.resolve([]),
     prisma.accident.findMany({
-      where: companyId ? { bus: { companyId } } : undefined,
+      where: accidentWhere,
       orderBy: { reportedAt: "desc" },
       take: 20,
     }),

@@ -53,6 +53,11 @@ export const packDash: Record<string, string> = {
   "Page": "পাতা",
   "Police / emergency monitoring. GPS is SIMULATED. Route status is rule-based, not AI. SOS is an application workflow — not live 999, police, or ambulance dispatch. Use Emergencies for the full SOS desk.":
     "পুলিশ / জরুরি নজরদারি। জিপিএস সিমুলেটেড। রুট অবস্থা নিয়মভিত্তিক, এআই নয়। জরুরি সংকেত অ্যাপ কার্যপ্রণালি — সরাসরি ৯৯৯, পুলিশ বা অ্যাম্বুলেন্স নয়। পূর্ণ জরুরি ডেস্কের জন্য Emergencies ব্যবহার করুন।",
+  "Your assigned place": "আপনার নির্ধারিত এলাকা",
+  "You only see buses and open problems in this place. Other places stay hidden, and you can only resolve problems here.":
+    "আপনি শুধু এই এলাকার বাস ও খোলা সমস্যা দেখতে পাবেন। অন্য এলাকা লুকানো থাকে, এবং আপনি শুধু এখানকার সমস্যা সমাধান করতে পারবেন।",
+  "This police account has no assigned place yet, so no buses or problems are shown.":
+    "এই পুলিশ অ্যাকাউন্টে এখনো কোনো এলাকা দেওয়া হয়নি, তাই কোনো বাস বা সমস্যা দেখা যাচ্ছে না।",
   "Active vehicles": "সক্রিয় যান",
   "registered": "নিবন্ধিত",
   "Suspended drivers": "স্থগিত চালক",

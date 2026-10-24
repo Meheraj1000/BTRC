@@ -246,6 +246,7 @@ model User {
   lostFoundDecided   LostFoundItem[]      @relation("LostFoundDecider")
   favoriteRoutes     PassengerFavorite[]
   refreshTokens      RefreshToken[]
+  policeAreas        PoliceArea[]
 
   @@index([status])
   @@index([deletedAt])
@@ -299,6 +300,20 @@ model RolePermission {
 
   @@id([roleId, permissionId])
   @@map("role_permissions")
+}
+
+/** City a police user is allowed to monitor. Other places stay hidden. */
+model PoliceArea {
+  id        String   @id @default(uuid())
+  userId    String
+  city      String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, city])
+  @@index([userId])
+  @@map("police_areas")
 }
 
 model RefreshToken {

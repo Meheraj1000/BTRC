@@ -153,6 +153,7 @@ export async function ingestLocation(
     polyline: bus.route?.polyline,
     routeCode: bus.route?.code,
     routeName: bus.route?.name,
+    city: bus.route?.city ?? null,
     latitude: input.latitude,
     longitude: input.longitude,
     timestamp,
@@ -196,7 +197,7 @@ export async function ingestLocation(
       routeId: bus.routeId,
       driverId: bus.driverId,
       companyId: bus.companyId,
-      route: bus.route ? { name: bus.route.name, allowedSpeed: bus.route.allowedSpeed } : null,
+      route: bus.route ? { name: bus.route.name, allowedSpeed: bus.route.allowedSpeed, city: bus.route.city } : null,
     },
   };
   const publicDto = toPublicGpsDto(row);
@@ -281,11 +282,15 @@ async function raiseAlert(data: {
     }).catch(() => undefined);
   }
 
-  const companyId = data.busId
-    ? (await prisma.bus.findUnique({ where: { id: data.busId }, select: { companyId: true } }))?.companyId
+  const located = data.busId
+    ? await prisma.bus.findUnique({
+      where: { id: data.busId },
+      select: { companyId: true, route: { select: { city: true } } },
+    })
     : null;
+  const companyId = located?.companyId ?? null;
   try {
-    broadcastAlert(alert, companyId);
+    broadcastAlert(alert, companyId, located?.route?.city ?? null);
   } catch {
     // ignore
   }

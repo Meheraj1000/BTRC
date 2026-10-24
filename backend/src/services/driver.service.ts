@@ -14,6 +14,7 @@ import {
   projectDriver,
   vehicleAssignmentBlockReason,
 } from "../utils/driverDto.js";
+import { driverPlaceWhere, policeCityScope } from "../utils/policeArea.js";
 import { ownerCompanyId, pagination } from "../utils/scope.js";
 
 export const driverInclude = {
@@ -76,6 +77,8 @@ export async function listDrivers(req: Request) {
   if (typeof req.query.registrationStatus === "string" && req.query.registrationStatus) {
     where.registrationStatus = req.query.registrationStatus as DriverRegistrationStatus;
   }
+  const cities = await policeCityScope(req);
+  if (cities) where.AND = [driverPlaceWhere(cities)];
   if (q) {
     where.OR = [
       { licenseNumber: { contains: q, mode: "insensitive" } },

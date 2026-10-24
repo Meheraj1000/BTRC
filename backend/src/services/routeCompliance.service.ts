@@ -8,6 +8,7 @@ import { deviationAgainstRoad } from "../utils/roadRoute.js";
 import { trackingState } from "../utils/gpsQuality.js";
 import { classifyDistance, complianceTransitioned, nextComplianceState } from "../utils/routeCompliance.js";
 import { projectComplianceState } from "../utils/routeDto.js";
+import { busPlaceWhere, policeCityScope, routePlaceWhere } from "../utils/policeArea.js";
 import { ownerCompanyId, pagination } from "../utils/scope.js";
 import type { Request } from "express";
 import { notifyCompanyOwner, notifyRoles, notifyUser } from "./notification.service.js";
@@ -38,6 +39,7 @@ export async function evaluateAndPersistCompliance(input: {
   polyline?: unknown;
   routeCode?: string;
   routeName?: string;
+  city?: string | null;
   latitude: number;
   longitude: number;
   timestamp: Date;
@@ -85,6 +87,7 @@ export async function evaluateAndPersistCompliance(input: {
       busId: input.busId,
       registrationNo: input.registrationNo,
       companyId: input.companyId,
+      city: input.city ?? null,
       routeId: null,
       routeCode: null,
       routeName: null,
@@ -127,6 +130,7 @@ export async function evaluateAndPersistCompliance(input: {
     busId: input.busId,
     registrationNo: input.registrationNo,
     companyId: input.companyId,
+    city: input.city ?? null,
     routeId: input.routeId,
     routeCode: input.routeCode ?? null,
     routeName: input.routeName ?? null,
@@ -196,6 +200,7 @@ async function raiseDeviationAlert(
     routeId?: string | null;
     latitude: number;
     longitude: number;
+    city?: string | null;
   },
   deviationM: number,
 ) {
@@ -232,7 +237,7 @@ async function raiseDeviationAlert(
     }).catch(() => undefined);
   }
   try {
-    broadcastAlert(alert, input.companyId);
+    broadcastAlert(alert, input.companyId, input.city ?? null);
   } catch {
     // tests without socket
   }
@@ -268,21 +273,33 @@ function ownerScope(req: Request) {
 
 export async function complianceSummary(req: Request) {
   const companyId = await ownerScope(req);
+  const cities = await policeCityScope(req);
   const staleBefore = new Date(Date.now() - env.GPS_STALE_SECONDS * 1000);
-  const busWhere = { deletedAt: null, routeId: { not: null }, companyId };
+  const busWhere = {
+    deletedAt: null,
+    routeId: { not: null },
+    companyId,
+    ...(cities ? { AND: [busPlaceWhere(cities)] } : {}),
+  };
+  const routeWhere = {
+    deletedAt: null,
+    status: "ACTIVE" as const,
+    companyId,
+    ...(cities ? routePlaceWhere(cities) : {}),
+  };
   const [activeRoutes, assigned, states, deviationsToday, staleGps] = await Promise.all([
-    prisma.route.count({ where: { deletedAt: null, status: "ACTIVE", companyId } }),
+    prisma.route.count({ where: routeWhere }),
     prisma.bus.count({ where: busWhere }),
     prisma.routeComplianceState.groupBy({
       by: ["status"],
-      where: companyId ? { bus: { companyId, deletedAt: null } } : { bus: { deletedAt: null } },
+      where: { bus: busWhere },
       _count: { _all: true },
     }),
     prisma.routeComplianceEvent.count({
       where: {
         toStatus: "OFF_ROUTE",
         createdAt: { gte: startOfDayDhaka() },
-        bus: companyId ? { companyId } : undefined,
+        bus: busWhere,
       },
     }),
     prisma.gpsLatestLocation.count({
@@ -311,12 +328,16 @@ export async function complianceSummary(req: Request) {
 export async function routeCompliance(req: Request, routeId: string) {
   const route = await prisma.route.findFirst({
     where: { id: routeId, deletedAt: null },
-    select: { id: true, companyId: true, isDemo: true },
+    select: { id: true, companyId: true, isDemo: true, city: true },
   });
   if (!route) throw new ApiError("Route not found", 404);
   const companyId = await ownerScope(req);
   if (companyId && route.companyId && route.companyId !== companyId && !route.isDemo) {
     throw new ApiError("You cannot access another operator's route compliance", 403);
+  }
+  const cities = await policeCityScope(req);
+  if (cities && !cities.some((city) => city.toLowerCase() === route.city.toLowerCase())) {
+    throw new ApiError("This route is outside your assigned place", 403);
   }
   const buses = await prisma.bus.findMany({
     where: { deletedAt: null, routeId, companyId },
@@ -386,11 +407,14 @@ export async function busCompliance(req: Request, busId: string) {
 
 export async function listComplianceEvents(req: Request, routeId?: string, busId?: string) {
   const companyId = await ownerScope(req);
+  const cities = await policeCityScope(req);
   const { skip, take, page, pageSize } = pagination(req.query as { page?: string; pageSize?: string });
   const where = {
     routeId,
     busId,
-    bus: companyId ? { companyId } : undefined,
+    bus: cities
+      ? { ...(companyId ? { companyId } : {}), AND: [busPlaceWhere(cities)] }
+      : companyId ? { companyId } : undefined,
   };
   const [items, total] = await Promise.all([
     prisma.routeComplianceEvent.findMany({

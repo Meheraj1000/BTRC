@@ -2,6 +2,7 @@ export type SocketIdentity = {
   sub?: string;
   roles?: string[];
   companyId?: string | null;
+  places?: string[] | null;
 };
 
 export function canJoinSocketRoom(room: string, user?: SocketIdentity | null) {
@@ -12,6 +13,10 @@ export function canJoinSocketRoom(room: string, user?: SocketIdentity | null) {
   if (room.startsWith("company:")) {
     if (user.roles?.includes("SUPER_ADMIN")) return true;
     return Boolean(user.companyId && room === `company:${user.companyId}`);
+  }
+  if (room.startsWith("place:")) {
+    const city = room.slice("place:".length);
+    return Boolean(user.places?.some((place) => place.toLowerCase() === city.toLowerCase()));
   }
   return false;
 }

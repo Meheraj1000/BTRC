@@ -6,13 +6,14 @@ import { ApiError } from "../lib/apiResponse.js";
 import { broadcastComplaint, emitToUser } from "../lib/socket.js";
 import { notifyCompanyOwner, notifyRoles, notifyUser } from "./notification.service.js";
 import { hasPermission } from "../utils/permissions.js";
+import { assertPolicePlace, placeRecordFilter, policeCityScope } from "../utils/policeArea.js";
 import { pagination, ownerCompanyId } from "../utils/scope.js";
 
 const COMPLAINT_INCLUDE = {
   passenger: { select: { id: true, fullName: true } },
-  bus: { select: { id: true, registrationNo: true, companyId: true, routeId: true } },
+  bus: { select: { id: true, registrationNo: true, companyId: true, routeId: true, route: { select: { city: true } } } },
   driver: { select: { id: true, user: { select: { fullName: true } } } },
-  route: { select: { id: true, code: true, name: true, companyId: true } },
+  route: { select: { id: true, code: true, name: true, companyId: true, city: true } },
   trip: { select: { id: true, busId: true, routeId: true } },
   resolver: { select: { id: true, fullName: true } },
   assignee: { select: { id: true, fullName: true } },
@@ -168,7 +169,11 @@ function emitComplaint(row: ComplaintRow) {
   const monitorView = projectComplaint(row, "monitor");
   try {
     emitToUser(row.passengerId, "complaint:update", passengerView);
-    broadcastComplaint(monitorView, row.bus?.companyId ?? row.route?.companyId ?? undefined);
+    broadcastComplaint(
+      monitorView,
+      row.bus?.companyId ?? row.route?.companyId ?? undefined,
+      row.route?.city ?? row.bus?.route?.city ?? null,
+    );
   } catch {
     // sockets may be unavailable in tests
   }
@@ -219,6 +224,8 @@ export async function listComplaints(req: Request) {
     ...(roles.includes("PASSENGER") ? { passengerId: req.user!.id } : {}),
     ...(isOwner(roles) ? scopeWhere(companyId) : {}),
   };
+  const cities = await policeCityScope(req);
+  if (cities) where.AND = [placeRecordFilter(cities)];
 
   if (typeof req.query.status === "string" && req.query.status) {
     if (!["PENDING", "UNDER_REVIEW", "RESOLVED", "REJECTED"].includes(req.query.status)) {
@@ -275,14 +282,30 @@ export async function getComplaint(req: Request, id: string) {
   if (isOwner(roles) && companyId && row.bus?.companyId !== companyId && row.route?.companyId !== companyId) {
     throw new ApiError("You cannot access another operator's complaint", 403);
   }
+  if (!passenger) {
+    await assertPolicePlace(req, {
+      busId: row.busId,
+      routeId: row.routeId,
+      latitude: row.latitude == null ? null : Number(row.latitude),
+      longitude: row.longitude == null ? null : Number(row.longitude),
+    });
+  }
   if (!passenger && !hasPermission(roles, "complaints.read")) {
     throw new ApiError("Insufficient permission", 403);
   }
   return projectComplaint(row, passenger ? "passenger" : "monitor");
 }
 
-export async function updateComplaintStatus(id: string, status: ComplaintStatus, actorId: string) {
+export async function updateComplaintStatus(id: string, status: ComplaintStatus, actorId: string, req?: Request) {
   const existing = await loadComplaint(id);
+  if (req) {
+    await assertPolicePlace(req, {
+      busId: existing.busId,
+      routeId: existing.routeId,
+      latitude: existing.latitude == null ? null : Number(existing.latitude),
+      longitude: existing.longitude == null ? null : Number(existing.longitude),
+    });
+  }
   const allowed = activeTransitions(existing.status);
   if (!allowed.includes(status)) {
     throw new ApiError(`Cannot change complaint from ${existing.status} to ${status}`, 422);
@@ -301,8 +324,16 @@ export async function updateComplaintStatus(id: string, status: ComplaintStatus,
   return projectComplaint(updated, "monitor");
 }
 
-export async function updateComplaintNote(id: string, internalNote: string) {
+export async function updateComplaintNote(id: string, internalNote: string, req?: Request) {
   const existing = await loadComplaint(id);
+  if (req) {
+    await assertPolicePlace(req, {
+      busId: existing.busId,
+      routeId: existing.routeId,
+      latitude: existing.latitude == null ? null : Number(existing.latitude),
+      longitude: existing.longitude == null ? null : Number(existing.longitude),
+    });
+  }
   const updated = await prisma.complaint.update({
     where: { id },
     data: { internalNote },
@@ -312,8 +343,16 @@ export async function updateComplaintNote(id: string, internalNote: string) {
   return projectComplaint(updated, "monitor");
 }
 
-export async function assignComplaint(id: string, assignedToId: string) {
+export async function assignComplaint(id: string, assignedToId: string, req?: Request) {
   const existing = await loadComplaint(id);
+  if (req) {
+    await assertPolicePlace(req, {
+      busId: existing.busId,
+      routeId: existing.routeId,
+      latitude: existing.latitude == null ? null : Number(existing.latitude),
+      longitude: existing.longitude == null ? null : Number(existing.longitude),
+    });
+  }
   const updated = await prisma.complaint.update({
     where: { id },
     data: {

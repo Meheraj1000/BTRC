@@ -25,6 +25,7 @@ import {
   isDriverEligibleForDuty,
 } from "../utils/driverDto.js";
 import { hasPermission } from "../utils/permissions.js";
+import { busPlaceWhere, policeCityScope } from "../utils/policeArea.js";
 import { ownerCompanyId, pagination } from "../utils/scope.js";
 import { assertRouteForBusCreate, assertRouteForBusUpdate } from "./route.service.js";
 import { ensureBusQrToken } from "./publicBus.service.js";
@@ -103,7 +104,13 @@ function parseRegistration(value: string) {
   }
 }
 
-export async function assertCanViewBus(req: Request, bus: { companyId: string; driverId: string | null }) {
+export async function assertCanViewBus(req: Request, bus: {
+  id?: string;
+  companyId: string;
+  driverId: string | null;
+  route?: { city?: string | null } | null;
+  company?: { city?: string | null } | null;
+}) {
   const ownerCid = await ownerCompanyId(req);
   if (ownerCid && bus.companyId !== ownerCid) {
     throw new ApiError("You cannot access another operator's resources", 403);
@@ -113,6 +120,19 @@ export async function assertCanViewBus(req: Request, bus: { companyId: string; d
     if (!driverId || bus.driverId !== driverId) {
       throw new ApiError("You can only access your assigned vehicle", 403);
     }
+  }
+  const cities = await policeCityScope(req);
+  if (!cities) return;
+  let city = bus.route?.city ?? (!bus.route && bus.company?.city ? bus.company.city : null);
+  if (!city && bus.id) {
+    const row = await prisma.bus.findUnique({
+      where: { id: bus.id },
+      select: { routeId: true, route: { select: { city: true } }, company: { select: { city: true } } },
+    });
+    city = row?.route?.city ?? (row && !row.routeId ? row.company?.city ?? null : null);
+  }
+  if (!city || !cities.some((item) => item.toLowerCase() === city!.toLowerCase())) {
+    throw new ApiError("This bus is outside your assigned place", 403);
   }
 }
 
@@ -134,6 +154,8 @@ export async function listBuses(req: Request) {
     const driverId = await driverIdForUser(req.user!.id);
     where.driverId = driverId ?? "00000000-0000-0000-0000-000000000000";
   }
+  const cities = await policeCityScope(req);
+  if (cities) where.AND = [busPlaceWhere(cities)];
   if (q) where.registrationNo = { contains: q, mode: "insensitive" };
   if (typeof req.query.operationalStatus === "string") {
     where.operationalStatus = req.query.operationalStatus as BusOperationalStatus;

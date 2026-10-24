@@ -8,7 +8,8 @@ import { validate } from "../middlewares/validate.js";
 import * as analytics from "../services/analytics.service.js";
 import { buildReportRows, toCsv, toExcel, toPdf, type ReportKind } from "../services/report.service.js";
 import { param } from "../utils/http.js";
-import { ownerCompanyId, pagination } from "../utils/scope.js";
+import { pagination, requestScope } from "../utils/scope.js";
+import { placeRecordFilter } from "../utils/policeArea.js";
 import { notifyRoles } from "../services/notification.service.js";
 
 const router = Router();
@@ -75,8 +76,7 @@ router.post(
 
 router.get("/analytics/overview", requirePermission("analytics.read"), async (req, res, next) => {
   try {
-    const companyId = await ownerCompanyId(req);
-    return ok(res, await analytics.overview({ companyId, roles: req.user!.roles }));
+    return ok(res, await analytics.overview(await requestScope(req)));
   } catch (err) {
     next(err);
   }
@@ -84,8 +84,7 @@ router.get("/analytics/overview", requirePermission("analytics.read"), async (re
 
 router.get("/analytics/series", requirePermission("analytics.read"), async (req, res, next) => {
   try {
-    const companyId = await ownerCompanyId(req);
-    return ok(res, await analytics.series({ companyId, roles: req.user!.roles }));
+    return ok(res, await analytics.series(await requestScope(req)));
   } catch (err) {
     next(err);
   }
@@ -93,10 +92,9 @@ router.get("/analytics/series", requirePermission("analytics.read"), async (req,
 
 router.get("/analytics/activity", requirePermission("analytics.read"), async (req, res, next) => {
   try {
-    const companyId = await ownerCompanyId(req);
+    const scope = await requestScope(req);
     return ok(res, await analytics.activity({
-      companyId,
-      roles: req.user!.roles,
+      ...scope,
       includeAudit: req.user!.roles.includes("SUPER_ADMIN"),
     }));
   } catch (err) {
@@ -106,8 +104,7 @@ router.get("/analytics/activity", requirePermission("analytics.read"), async (re
 
 router.get("/analytics/buses", requirePermission("analytics.read"), async (req, res, next) => {
   try {
-    const companyId = await ownerCompanyId(req);
-    return ok(res, await analytics.busAnalytics({ companyId }, req.query as { page?: string; pageSize?: string }));
+    return ok(res, await analytics.busAnalytics(await requestScope(req), req.query as { page?: string; pageSize?: string }));
   } catch (err) {
     next(err);
   }
@@ -115,8 +112,7 @@ router.get("/analytics/buses", requirePermission("analytics.read"), async (req, 
 
 router.get("/analytics/drivers", requirePermission("analytics.read"), async (req, res, next) => {
   try {
-    const companyId = await ownerCompanyId(req);
-    return ok(res, await analytics.driverAnalytics({ companyId }, req.query as { page?: string; pageSize?: string }));
+    return ok(res, await analytics.driverAnalytics(await requestScope(req), req.query as { page?: string; pageSize?: string }));
   } catch (err) {
     next(err);
   }
@@ -124,8 +120,7 @@ router.get("/analytics/drivers", requirePermission("analytics.read"), async (req
 
 router.get("/analytics/routes", requirePermission("analytics.read"), async (req, res, next) => {
   try {
-    const companyId = await ownerCompanyId(req);
-    return ok(res, await analytics.routeAnalytics({ companyId }, req.query as { page?: string; pageSize?: string }));
+    return ok(res, await analytics.routeAnalytics(await requestScope(req), req.query as { page?: string; pageSize?: string }));
   } catch (err) {
     next(err);
   }
@@ -133,8 +128,10 @@ router.get("/analytics/routes", requirePermission("analytics.read"), async (req,
 
 router.get("/analytics/alerts", requirePermission("analytics.read"), async (req, res, next) => {
   try {
-    const companyId = await ownerCompanyId(req);
-    const busFilter = companyId ? { bus: { companyId } } : {};
+    const scope = await requestScope(req);
+    const busFilter = scope.cities
+      ? placeRecordFilter(scope.cities)
+      : scope.companyId ? { bus: { companyId: scope.companyId } } : {};
     const [byType, bySeverity] = await Promise.all([
       prisma.alert.groupBy({ by: ["type"], where: busFilter, _count: true }),
       prisma.alert.groupBy({ by: ["severity"], where: busFilter, _count: true }),
@@ -143,7 +140,7 @@ router.get("/analytics/alerts", requirePermission("analytics.read"), async (req,
       byType,
       bySeverity,
       dataLabel: "DEMO",
-      scope: companyId ? "COMPANY" : "DEPLOYMENT",
+      scope: scope.cities ? "PLACE" : scope.companyId ? "COMPANY" : "DEPLOYMENT",
     });
   } catch (err) {
     next(err);
@@ -154,7 +151,7 @@ router.get("/reports/:kind", requirePermission("reports.read"), async (req, res,
   try {
     const kind = param(req, "kind") as ReportKind;
     const format = String(req.query.format ?? "json");
-    const rows = await buildReportRows(kind);
+    const rows = await buildReportRows(kind, await requestScope(req));
     const filename = `nirapad-${kind}`;
     if (format === "csv") {
       res.setHeader("Content-Type", "text/csv");

@@ -93,8 +93,10 @@ describe("Police and emergency monitoring", () => {
     const drivers = await request(app).get("/api/drivers?page=1&pageSize=5").set("Authorization", `Bearer ${token(police)}`);
     const buses = await request(app).get("/api/buses?page=1&pageSize=5&trackingState=STALE").set("Authorization", `Bearer ${token(police)}`);
     const policeAlerts = await request(app).get("/api/alerts?page=1&pageSize=50").set("Authorization", `Bearer ${token(police)}`);
+    const government = await login("government@nirapad.gov.bd");
+    const nationalAlerts = await request(app).get("/api/alerts?page=1&pageSize=50").set("Authorization", `Bearer ${token(government)}`);
     expect(ownerAlerts.status).toBe(200);
-    expect(ownerAlerts.body.data.total).toBeLessThanOrEqual(policeAlerts.body.data.total);
+    expect(policeAlerts.body.data.total).toBeLessThanOrEqual(nationalAlerts.body.data.total);
     expect(drivers.status).toBe(200);
     const sample = drivers.body.data.items[0] as Record<string, unknown> | undefined;
     if (sample) {

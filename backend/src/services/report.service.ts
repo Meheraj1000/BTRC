@@ -1,7 +1,22 @@
 import ExcelJS from "exceljs";
 import { stringify } from "csv-stringify/sync";
 import PDFDocument from "pdfkit";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "../lib/prisma.js";
+import { busPlaceWhere, driverPlaceWhere, placeRecordFilter } from "../utils/policeArea.js";
+
+export type ReportScope = { companyId?: string; cities?: string[] };
+
+function busScope(scope?: ReportScope): Prisma.BusWhereInput {
+  const where: Prisma.BusWhereInput = { deletedAt: null };
+  if (scope?.companyId) where.companyId = scope.companyId;
+  if (scope?.cities) where.AND = [busPlaceWhere(scope.cities)];
+  return where;
+}
+
+function limited(scope?: ReportScope) {
+  return Boolean(scope?.companyId || scope?.cities);
+}
 
 export type ReportKind =
   | "bus-activity"
@@ -13,11 +28,14 @@ export type ReportKind =
   | "trips"
   | "vehicle-status";
 
-export async function buildReportRows(kind: ReportKind) {
+export async function buildReportRows(kind: ReportKind, scope?: ReportScope) {
+  const problems = scope?.cities
+    ? placeRecordFilter(scope.cities)
+    : scope?.companyId ? { bus: { companyId: scope.companyId } } : {};
   switch (kind) {
     case "bus-activity":
       return prisma.bus.findMany({
-        where: { deletedAt: null },
+        where: limited(scope) ? busScope(scope) : { deletedAt: null },
         include: { company: true, route: true, _count: { select: { trips: true, alerts: true } } },
       }).then((rows) =>
         rows.map((b) => ({
@@ -31,7 +49,11 @@ export async function buildReportRows(kind: ReportKind) {
       );
     case "driver-performance":
       return prisma.driver.findMany({
-        where: { deletedAt: null },
+        where: {
+          deletedAt: null,
+          ...(scope?.companyId ? { companyId: scope.companyId } : {}),
+          ...(scope?.cities ? { AND: [driverPlaceWhere(scope.cities)] } : {}),
+        },
         include: { user: true, company: true },
       }).then((rows) =>
         rows.map((d) => ({
@@ -45,7 +67,7 @@ export async function buildReportRows(kind: ReportKind) {
       );
     case "route-violations":
       return prisma.alert.findMany({
-        where: { type: "ROUTE_DEVIATION" },
+        where: { type: "ROUTE_DEVIATION", ...problems },
         include: { bus: true, driver: { include: { user: true } } },
         take: 500,
         orderBy: { createdAt: "desc" },
@@ -60,7 +82,7 @@ export async function buildReportRows(kind: ReportKind) {
       );
     case "speed-violations":
       return prisma.alert.findMany({
-        where: { type: "OVERSPEED" },
+        where: { type: "OVERSPEED", ...problems },
         include: { bus: true, driver: { include: { user: true } } },
         take: 500,
         orderBy: { createdAt: "desc" },
@@ -75,6 +97,7 @@ export async function buildReportRows(kind: ReportKind) {
       );
     case "sos":
       return prisma.sosRequest.findMany({
+        where: problems,
         include: { user: true },
         take: 500,
         orderBy: { createdAt: "desc" },
@@ -90,6 +113,7 @@ export async function buildReportRows(kind: ReportKind) {
       );
     case "complaints":
       return prisma.complaint.findMany({
+        where: problems,
         include: { passenger: true, bus: true },
         take: 500,
         orderBy: { createdAt: "desc" },
@@ -104,6 +128,7 @@ export async function buildReportRows(kind: ReportKind) {
       );
     case "trips":
       return prisma.trip.findMany({
+        where: limited(scope) ? { bus: busScope(scope) } : undefined,
         include: { bus: true, driver: { include: { user: true } }, route: true },
         take: 500,
         orderBy: { startedAt: "desc" },
@@ -121,7 +146,7 @@ export async function buildReportRows(kind: ReportKind) {
       );
     case "vehicle-status":
       return prisma.bus.findMany({
-        where: { deletedAt: null },
+        where: limited(scope) ? busScope(scope) : { deletedAt: null },
         include: { company: true },
       }).then((rows) =>
         rows.map((b) => ({

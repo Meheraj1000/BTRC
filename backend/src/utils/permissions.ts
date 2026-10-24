@@ -91,6 +91,7 @@ export const ROLE_PERMISSIONS: Record<RoleCode, PermissionCode[]> = {
     "sos.read",
     "sos.manage",
     "complaints.read",
+    "complaints.manage",
     "complaints.note",
     "lostfound.read",
     "lostfound.manage",

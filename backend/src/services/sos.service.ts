@@ -5,6 +5,7 @@ import { ApiError } from "../lib/apiResponse.js";
 import { broadcastAlert, broadcastSos, emitToUser } from "../lib/socket.js";
 import { notifyRoles, notifyUser } from "./notification.service.js";
 import { hasPermission } from "../utils/permissions.js";
+import { assertPolicePlace, cityForPoint, placeRecordFilter, policeCityScope } from "../utils/policeArea.js";
 import { pagination } from "../utils/scope.js";
 
 export const ACTIVE_SOS_STATUSES: SosStatus[] = [
@@ -29,9 +30,9 @@ const MONITOR_TRANSITIONS: Record<SosStatus, SosStatus[]> = {
 
 const SOS_INCLUDE = {
   user: { select: { id: true, fullName: true } },
-  bus: { select: { id: true, registrationNo: true, routeId: true, driverId: true, latestLoc: true, route: { select: { id: true, code: true, name: true } } } },
+  bus: { select: { id: true, registrationNo: true, routeId: true, driverId: true, latestLoc: true, route: { select: { id: true, code: true, name: true, city: true } } } },
   trip: { select: { id: true, routeId: true } },
-  route: { select: { id: true, code: true, name: true } },
+  route: { select: { id: true, code: true, name: true, city: true } },
   driver: { select: { id: true, user: { select: { fullName: true } } } },
 } satisfies Prisma.SosRequestInclude;
 
@@ -213,7 +214,11 @@ async function notifyCreated(row: SosRow) {
     body: row.bus?.registrationNo
       ? `SOS linked to ${row.bus.registrationNo}. Open the notice for bus, driver, and live location.`
       : "A passenger or driver recorded an SOS. Open the notice for details when a vehicle is linked.",
-    payload,
+    payload: {
+      ...payload,
+      latitude: row.latitude == null ? null : Number(row.latitude),
+      longitude: row.longitude == null ? null : Number(row.longitude),
+    },
   });
 }
 
@@ -227,9 +232,15 @@ async function notifyStatus(row: SosRow, previous: SosStatus) {
   });
 }
 
+function sosCity(row: SosRow) {
+  return row.route?.city
+    ?? row.bus?.route?.city
+    ?? cityForPoint(row.latitude == null ? null : Number(row.latitude), row.longitude == null ? null : Number(row.longitude));
+}
+
 function emitRealtime(row: SosRow) {
   try {
-    broadcastSos(projectSos(row, "monitor"));
+    broadcastSos(projectSos(row, "monitor"), sosCity(row));
     emitToUser(row.userId, "sos:update", projectSos(row, "passenger"));
   } catch {
     // sockets may be unavailable in tests
@@ -358,7 +369,7 @@ export async function createSos(input: {
       longitude: available ? lng : null,
       sosId: row.id,
       dataLabel: "APPLICATION WORKFLOW — not a live emergency dispatch",
-    });
+    }, undefined, sosCity(row));
   } catch {
     // sockets may be unavailable in tests
   }
@@ -375,6 +386,8 @@ export async function listSos(req: Request) {
   const { skip, take, page, pageSize } = pagination(req.query as { page?: string; pageSize?: string });
   const where: Prisma.SosRequestWhereInput = {};
   if (!monitor) where.userId = req.user!.id;
+  const cities = await policeCityScope(req);
+  if (cities) where.AND = [placeRecordFilter(cities)];
 
   if (typeof req.query.status === "string" && req.query.status) {
     if (!Object.values(SosStatus).includes(req.query.status as SosStatus)) {
@@ -431,14 +444,30 @@ export async function getSos(req: Request, id: string) {
   if (!monitor && row.userId !== req.user!.id) {
     throw new ApiError("You cannot access another user's SOS", 403);
   }
+  if (monitor) {
+    await assertPolicePlace(req, {
+      busId: row.busId,
+      routeId: row.routeId,
+      latitude: row.latitude == null ? null : Number(row.latitude),
+      longitude: row.longitude == null ? null : Number(row.longitude),
+    });
+  }
   if (!monitor && !hasPermission(roles, "sos.create")) {
     throw new ApiError("Insufficient permission", 403);
   }
   return projectSos(row, monitor ? "monitor" : "passenger");
 }
 
-export async function updateSosStatus(id: string, status: SosStatus, actorId: string) {
+export async function updateSosStatus(id: string, status: SosStatus, actorId: string, req?: Request) {
   const existing = await loadSos(id);
+  if (req) {
+    await assertPolicePlace(req, {
+      busId: existing.busId,
+      routeId: existing.routeId,
+      latitude: existing.latitude == null ? null : Number(existing.latitude),
+      longitude: existing.longitude == null ? null : Number(existing.longitude),
+    });
+  }
   const allowed = MONITOR_TRANSITIONS[existing.status] ?? [];
   if (!allowed.includes(status)) {
     throw new ApiError(`Cannot change SOS from ${existing.status} to ${status}`, 422);
@@ -485,8 +514,16 @@ export async function cancelSos(req: Request, id: string) {
   return projectSos(updated, isMonitor(req.user!.roles) ? "monitor" : "passenger");
 }
 
-export async function updateSosNote(id: string, internalNote: string) {
+export async function updateSosNote(id: string, internalNote: string, req?: Request) {
   const existing = await loadSos(id);
+  if (req) {
+    await assertPolicePlace(req, {
+      busId: existing.busId,
+      routeId: existing.routeId,
+      latitude: existing.latitude == null ? null : Number(existing.latitude),
+      longitude: existing.longitude == null ? null : Number(existing.longitude),
+    });
+  }
   const row = await prisma.sosRequest.update({
     where: { id },
     data: { internalNote },

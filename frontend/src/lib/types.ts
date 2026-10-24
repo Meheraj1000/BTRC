@@ -17,6 +17,7 @@ export type AuthUser = {
   phone?: string | null;
   status: string;
   roles: RoleCode[];
+  areas?: string[];
   driver?: { id: string; licenseNumber: string; licenseStatus: string } | null;
   company?: { id: string; name: string } | null;
   passenger?: {

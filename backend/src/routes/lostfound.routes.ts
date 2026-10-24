@@ -87,7 +87,7 @@ router.post(
   validate(z.object({ matchedItemId: z.string().uuid() })),
   async (req, res, next) => {
     try {
-      return ok(res, await lostfound.matchItem(param(req, "id"), req.body.matchedItemId, req.user!.id), "Match recorded");
+      return ok(res, await lostfound.matchItem(param(req, "id"), req.body.matchedItemId, req.user!.id, req), "Match recorded");
     } catch (err) {
       next(err);
     }
@@ -115,7 +115,7 @@ router.put(
   validate(z.object({ decision: z.nativeEnum(LostFoundClaimStatus) })),
   async (req, res, next) => {
     try {
-      return ok(res, await lostfound.reviewClaim(param(req, "id"), req.body.decision, req.user!.id), "Claim reviewed");
+      return ok(res, await lostfound.reviewClaim(param(req, "id"), req.body.decision, req.user!.id, req), "Claim reviewed");
     } catch (err) {
       next(err);
     }
@@ -128,7 +128,7 @@ router.post(
   auditAction("lostfound.status", "LostFoundItem"),
   async (req, res, next) => {
     try {
-      return ok(res, await lostfound.closeItem(param(req, "id"), req.user!.id), "Item closed");
+      return ok(res, await lostfound.closeItem(param(req, "id"), req.user!.id, req), "Item closed");
     } catch (err) {
       next(err);
     }

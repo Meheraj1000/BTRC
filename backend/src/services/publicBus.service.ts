@@ -160,7 +160,7 @@ export async function createQrEmergency(input: {
     where: { qrToken, deletedAt: null },
     include: {
       company: { select: { id: true, name: true, ownerUserId: true } },
-      route: { select: { id: true, code: true, name: true } },
+      route: { select: { id: true, code: true, name: true, city: true } },
       driver: { select: { id: true, userId: true, user: { select: { fullName: true } } } },
       latestLoc: true,
     },
@@ -307,7 +307,7 @@ export async function createQrEmergency(input: {
       complaintId: complaint.id,
       sosId,
       dataLabel: "QR EMERGENCY — application workflow, not live dispatch",
-    }, bus.companyId);
+    }, bus.companyId, bus.route?.city ?? null);
     broadcastComplaint(
       {
         id: complaint.id,
@@ -322,6 +322,7 @@ export async function createQrEmergency(input: {
         source: "QR_EMERGENCY",
       },
       bus.companyId,
+      bus.route?.city ?? null,
     );
   } catch {
     // sockets may be unavailable in tests

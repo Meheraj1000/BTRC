@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { useAuth } from "@/lib/auth";
 import { api } from "@/lib/api";
 import { busHasIssue, vehicleRowHasIssue } from "@/lib/busIssue";
 import { useI18n } from "@/lib/i18n";
@@ -56,6 +57,11 @@ function tone(status?: string | null) {
 
 export function PoliceMonitoring() {
   const { t } = useI18n();
+  const { user } = useAuth();
+  const places = useMemo(() => {
+    if (!user?.roles.includes("POLICE") || user.roles.includes("SUPER_ADMIN")) return [];
+    return user.areas ?? [];
+  }, [user]);
   const [overview, setOverview] = useState<Overview | null>(null);
   const [buses, setBuses] = useState<BusLive[]>([]);
   const [pickedBusId, setPickedBusId] = useState<string | null>(null);
@@ -99,6 +105,8 @@ export function PoliceMonitoring() {
   useEffect(() => {
     const socket = getSocket();
     const onLoc = (payload: Record<string, unknown>) => {
+      const city = typeof payload.city === "string" ? payload.city : "";
+      if (places.length && city && !places.some((place) => place.toLowerCase() === city.toLowerCase())) return;
       const next = normalizeLive(payload);
       setBuses((prev) => [...prev.filter((b) => b.busId !== next.busId), next]);
     };
@@ -117,7 +125,7 @@ export function PoliceMonitoring() {
       socket.off("bus:location:ops", onLoc);
       socket.off("route:status", onRoute);
     };
-  }, []);
+  }, [places]);
 
   const cards = overview?.cards ?? {};
   const issueIds = useMemo(() => new Set(buses.filter((b) => busHasIssue(b)).map((b) => b.busId)), [buses]);
@@ -126,6 +134,17 @@ export function PoliceMonitoring() {
   return (
     <div className="space-y-5">
       {error && <ErrorState message={error} />}
+      {user?.roles.includes("POLICE") && !user.roles.includes("SUPER_ADMIN") && (
+        <p className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm">
+          <span className="font-semibold">{t("Your assigned place")}: </span>
+          {places.length ? places.join(", ") : t("This police account has no assigned place yet, so no buses or problems are shown.")}
+          {places.length > 0 && (
+            <span className="mt-1 block text-xs text-[var(--text-muted)]">
+              {t("You only see buses and open problems in this place. Other places stay hidden, and you can only resolve problems here.")}
+            </span>
+          )}
+        </p>
+      )}
       <p className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text-muted)]">
         {t(
           "Police / emergency monitoring. GPS is SIMULATED. Route status is rule-based, not AI. SOS is an application workflow — not live 999, police, or ambulance dispatch. Use Emergencies for the full SOS desk.",

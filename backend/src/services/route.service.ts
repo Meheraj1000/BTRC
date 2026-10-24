@@ -16,6 +16,7 @@ import {
   type RouteStopInput,
   type RouteWriteInput,
 } from "../utils/routeDto.js";
+import { policeCityScope, routePlaceWhere } from "../utils/policeArea.js";
 import { ownerCompanyId, pagination } from "../utils/scope.js";
 
 export const routeInclude = {
@@ -90,6 +91,8 @@ export async function listRoutes(req: Request) {
   if (ownerScoped && paginated) {
     where.companyId = ownerCid;
   }
+  const cities = req.user ? await policeCityScope(req) : null;
+  if (cities) where.AND = [routePlaceWhere(cities)];
 
   const include = {
     company: { select: { id: true, name: true } },

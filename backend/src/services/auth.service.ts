@@ -31,6 +31,16 @@ function publicUser(user: {
   };
 }
 
+async function withAreas<T extends { id: string; roles: RoleCode[] }>(user: T) {
+  if (!user.roles.includes("POLICE")) return { ...user, areas: [] as string[] };
+  const rows = await prisma.policeArea.findMany({
+    where: { userId: user.id },
+    select: { city: true },
+    orderBy: { city: "asc" },
+  });
+  return { ...user, areas: rows.map((row) => row.city) };
+}
+
 const userInclude = { userRoles: { include: { role: true } } } as const;
 
 export async function registerPassenger(input: {
@@ -288,7 +298,7 @@ export async function me(userId: string) {
   });
   if (!user) throw new ApiError("User not found", 404);
   return {
-    ...publicUser(user),
+    ...(await withAreas(publicUser(user))),
     passenger: user.passenger,
     driver: user.driver
       ? {
@@ -327,7 +337,7 @@ async function issueTokens(user: {
   await prisma.refreshToken.create({
     data: { userId: user.id, tokenHash: hashToken(refreshToken), expiresAt },
   });
-  return { user: publicUser(user), accessToken, refreshToken };
+  return { user: await withAreas(publicUser(user)), accessToken, refreshToken };
 }
 
 function hashToken(token: string) {

@@ -65,7 +65,7 @@ router.put(
   validate(z.object({ status: z.nativeEnum(SosStatus) })),
   async (req, res, next) => {
     try {
-      return ok(res, await sos.updateSosStatus(param(req, "id"), req.body.status, req.user!.id), "SOS updated");
+      return ok(res, await sos.updateSosStatus(param(req, "id"), req.body.status, req.user!.id, req), "SOS updated");
     } catch (err) {
       next(err);
     }
@@ -92,7 +92,7 @@ router.put(
   validate(z.object({ internalNote: z.string().max(2000) })),
   async (req, res, next) => {
     try {
-      return ok(res, await sos.updateSosNote(param(req, "id"), req.body.internalNote), "Internal note saved");
+      return ok(res, await sos.updateSosNote(param(req, "id"), req.body.internalNote, req), "Internal note saved");
     } catch (err) {
       next(err);
     }
@@ -150,7 +150,7 @@ router.put(
   validate(z.object({ status: z.nativeEnum(ComplaintStatus) })),
   async (req, res, next) => {
     try {
-      return ok(res, await complaints.updateComplaintStatus(param(req, "id"), req.body.status, req.user!.id), "Complaint updated");
+      return ok(res, await complaints.updateComplaintStatus(param(req, "id"), req.body.status, req.user!.id, req), "Complaint updated");
     } catch (err) {
       next(err);
     }
@@ -164,7 +164,7 @@ router.put(
   validate(z.object({ assignedToId: z.string().uuid() })),
   async (req, res, next) => {
     try {
-      return ok(res, await complaints.assignComplaint(param(req, "id"), req.body.assignedToId), "Complaint assigned");
+      return ok(res, await complaints.assignComplaint(param(req, "id"), req.body.assignedToId, req), "Complaint assigned");
     } catch (err) {
       next(err);
     }
@@ -178,7 +178,7 @@ router.put(
   validate(z.object({ internalNote: z.string().max(2000) })),
   async (req, res, next) => {
     try {
-      return ok(res, await complaints.updateComplaintNote(param(req, "id"), req.body.internalNote), "Internal note saved");
+      return ok(res, await complaints.updateComplaintNote(param(req, "id"), req.body.internalNote, req), "Internal note saved");
     } catch (err) {
       next(err);
     }
@@ -200,7 +200,7 @@ router.put(
   validate(z.object({ status: z.nativeEnum(AlertStatus) })),
   async (req, res, next) => {
     try {
-      return ok(res, await alerts.updateAlertStatus(param(req, "id"), req.body.status), "Alert updated");
+      return ok(res, await alerts.updateAlertStatus(param(req, "id"), req.body.status, req), "Alert updated");
     } catch (err) {
       next(err);
     }

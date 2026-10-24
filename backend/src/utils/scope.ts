@@ -1,6 +1,7 @@
 import type { Request } from "express";
 import { prisma } from "../lib/prisma.js";
 import { ApiError } from "../lib/apiResponse.js";
+import { policeCityScope } from "./policeArea.js";
 
 export async function ownerCompanyId(req: Request): Promise<string | undefined> {
   if (!req.user?.roles.includes("TRANSPORT_OWNER")) return undefined;
@@ -16,6 +17,16 @@ export async function assertOwnerScope(req: Request, companyId: string | null | 
   if (ownerCompany && companyId !== ownerCompany) {
     throw new ApiError("You cannot access another operator's resources", 403);
   }
+}
+
+export async function requestScope(req: Request) {
+  const companyId = await ownerCompanyId(req);
+  const cities = await policeCityScope(req);
+  return {
+    companyId,
+    roles: req.user?.roles ?? [],
+    cities: cities ?? undefined,
+  };
 }
 
 export function pagination(query: { page?: string; pageSize?: string }) {

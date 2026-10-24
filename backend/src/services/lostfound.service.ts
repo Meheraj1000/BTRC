@@ -6,12 +6,13 @@ import { ApiError } from "../lib/apiResponse.js";
 import { broadcastLostFound, emitToUser } from "../lib/socket.js";
 import { notifyCompanyOwner, notifyRoles, notifyUser } from "./notification.service.js";
 import { hasPermission } from "../utils/permissions.js";
+import { assertPolicePlace, placeRecordFilter, policeCityScope } from "../utils/policeArea.js";
 import { ownerCompanyId, pagination } from "../utils/scope.js";
 
 const LF_INCLUDE = {
   reporter: { select: { id: true, fullName: true } },
-  bus: { select: { id: true, registrationNo: true, companyId: true, routeId: true } },
-  route: { select: { id: true, code: true, name: true, companyId: true } },
+  bus: { select: { id: true, registrationNo: true, companyId: true, routeId: true, route: { select: { city: true } } } },
+  route: { select: { id: true, code: true, name: true, companyId: true, city: true } },
   driver: { select: { id: true, user: { select: { fullName: true } } } },
   trip: { select: { id: true, busId: true, routeId: true } },
   claimedBy: { select: { id: true, fullName: true } },
@@ -134,13 +135,27 @@ async function notifyCreated(row: LostFoundRow) {
     type: "LOST_FOUND",
     title: `${row.kind === "LOST" ? "Lost item" : "Found item"} recorded`,
     body: "Your report was saved in the application workflow.",
-    payload: { itemId: row.id, status: row.status },
+    payload: {
+      itemId: row.id,
+      status: row.status,
+      busId: row.busId,
+      routeId: row.routeId,
+      latitude: row.latitude == null ? null : Number(row.latitude),
+      longitude: row.longitude == null ? null : Number(row.longitude),
+    },
   });
   await notifyRoles(["SUPER_ADMIN", "GOVERNMENT", "POLICE"], {
     type: "LOST_FOUND",
     title: "New Lost & Found report",
     body: `${row.kind} report submitted`,
-    payload: { itemId: row.id, status: row.status },
+    payload: {
+      itemId: row.id,
+      status: row.status,
+      busId: row.busId,
+      routeId: row.routeId,
+      latitude: row.latitude == null ? null : Number(row.latitude),
+      longitude: row.longitude == null ? null : Number(row.longitude),
+    },
   });
   const companyId = row.bus?.companyId ?? row.route?.companyId ?? undefined;
   await notifyCompanyOwner(companyId, {
@@ -166,7 +181,11 @@ function emitItem(row: LostFoundRow) {
   const monitorView = projectItem(row, "monitor");
   try {
     emitToUser(row.reporterId, "lostfound:update", passengerView);
-    broadcastLostFound(monitorView, row.bus?.companyId ?? row.route?.companyId ?? undefined);
+    broadcastLostFound(
+      monitorView,
+      row.bus?.companyId ?? row.route?.companyId ?? undefined,
+      row.route?.city ?? row.bus?.route?.city ?? null,
+    );
   } catch {
     // sockets may be unavailable in tests
   }
@@ -269,6 +288,8 @@ export async function listItems(req: Request) {
     ...(roles.includes("PASSENGER") ? { reporterId: req.user!.id } : {}),
     ...(isOwner(roles) ? companyId ? { OR: [{ bus: { companyId } }, { route: { companyId } }] } : {} : {}),
   };
+  const cities = await policeCityScope(req);
+  if (cities) where.AND = [placeRecordFilter(cities)];
   if (typeof req.query.kind === "string" && req.query.kind) {
     if (!["LOST", "FOUND"].includes(req.query.kind)) throw new ApiError("Invalid item kind", 422);
     where.kind = req.query.kind as LostFoundItemKind;
@@ -320,11 +341,29 @@ export async function getItem(req: Request, id: string) {
   if (!passenger && !hasPermission(roles, "lostfound.read")) {
     throw new ApiError("Insufficient permission", 403);
   }
+  await assertPolicePlace(req, {
+    busId: row.busId,
+    routeId: row.routeId,
+    latitude: row.latitude == null ? null : Number(row.latitude),
+    longitude: row.longitude == null ? null : Number(row.longitude),
+  });
   const matches = await listCandidates(row);
   return { ...projectItem(row, passenger ? "passenger" : "monitor"), potentialMatches: matches };
 }
 
-export async function matchItem(id: string, matchedItemId: string, actorId: string) {
+async function assertItemPlace(req: Request | undefined, id: string) {
+  if (!req) return;
+  const row = await loadItem(id);
+  await assertPolicePlace(req, {
+    busId: row.busId,
+    routeId: row.routeId,
+    latitude: row.latitude == null ? null : Number(row.latitude),
+    longitude: row.longitude == null ? null : Number(row.longitude),
+  });
+}
+
+export async function matchItem(id: string, matchedItemId: string, actorId: string, req?: Request) {
+  await assertItemPlace(req, id);
   const row = await loadItem(id);
   const match = await loadItem(matchedItemId);
   if (row.kind === match.kind) throw new ApiError("Match requires opposite item kinds", 422);
@@ -368,7 +407,8 @@ export async function claimItem(id: string, actorId: string, claimNote: string, 
   return projectItem(updated, "passenger");
 }
 
-export async function reviewClaim(id: string, decision: LostFoundClaimStatus, actorId: string) {
+export async function reviewClaim(id: string, decision: LostFoundClaimStatus, actorId: string, req?: Request) {
+  await assertItemPlace(req, id);
   const row = await loadItem(id);
   if (row.status !== "CLAIM_PENDING") throw new ApiError("No claim is awaiting review", 422);
   if (!row.claimedById) throw new ApiError("No claimant is attached", 422);
@@ -388,7 +428,8 @@ export async function reviewClaim(id: string, decision: LostFoundClaimStatus, ac
   return projectItem(updated, "monitor");
 }
 
-export async function closeItem(id: string, actorId: string) {
+export async function closeItem(id: string, actorId: string, req?: Request) {
+  await assertItemPlace(req, id);
   const row = await loadItem(id);
   if (!transitionAllowed(row.status, "CLOSED")) throw new ApiError("This item cannot be closed now", 422);
   const updated = await prisma.lostFoundItem.update({ where: { id }, data: { status: "CLOSED", decidedById: actorId }, include: LF_INCLUDE });

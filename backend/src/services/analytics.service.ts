@@ -1,20 +1,40 @@
 import type { Prisma, RoleCode } from "@prisma/client";
 import { env } from "../config/env.js";
 import { prisma } from "../lib/prisma.js";
+import { busPlaceWhere, driverPlaceWhere, placeRecordFilter, routePlaceWhere } from "../utils/policeArea.js";
 import { hasPermission } from "../utils/permissions.js";
 import { pagination } from "../utils/scope.js";
 
 export type OverviewScope = {
   companyId?: string;
   roles?: RoleCode[];
+  cities?: string[];
 };
 
-function busWhere(companyId?: string): Prisma.BusWhereInput {
-  return { deletedAt: null, companyId };
+function busesFor(scope: OverviewScope): Prisma.BusWhereInput {
+  const where: Prisma.BusWhereInput = { deletedAt: null };
+  if (scope.companyId) where.companyId = scope.companyId;
+  if (scope.cities) where.AND = [busPlaceWhere(scope.cities)];
+  return where;
 }
 
-function driverWhere(companyId?: string): Prisma.DriverWhereInput {
-  return { deletedAt: null, companyId };
+function driversFor(scope: OverviewScope): Prisma.DriverWhereInput {
+  const where: Prisma.DriverWhereInput = { deletedAt: null };
+  if (scope.companyId) where.companyId = scope.companyId;
+  if (scope.cities) where.AND = [driverPlaceWhere(scope.cities)];
+  return where;
+}
+
+function problemsFor(scope: OverviewScope) {
+  if (scope.cities) return placeRecordFilter(scope.cities);
+  if (scope.companyId) return { bus: { is: { companyId: scope.companyId } } };
+  return {};
+}
+
+function scopedLabel(scope: OverviewScope) {
+  if (scope.cities) return "PLACE";
+  if (scope.companyId) return "COMPANY";
+  return "DEPLOYMENT";
 }
 
 function staleBefore() {
@@ -22,13 +42,16 @@ function staleBefore() {
 }
 
 export async function overview(scope: OverviewScope = {}) {
-  const companyId = scope.companyId;
   const roles = scope.roles ?? [];
-  const buses = busWhere(companyId);
-  const drivers = driverWhere(companyId);
+  const buses = busesFor(scope);
+  const drivers = driversFor(scope);
+  const problems = problemsFor(scope);
   const stale = staleBefore();
   const today = startOfDayDhaka();
-  const busAlert = companyId ? { bus: { companyId } } : {};
+  const routeWhere: Prisma.RouteWhereInput = { deletedAt: null };
+  if (scope.companyId) routeWhere.companyId = scope.companyId;
+  if (scope.cities) routeWhere.AND = [routePlaceWhere(scope.cities)];
+  const tripBus = scope.companyId || scope.cities ? buses : undefined;
 
   const [
     totalBuses,
@@ -75,8 +98,8 @@ export async function overview(scope: OverviewScope = {}) {
     prisma.driver.count({ where: { ...drivers, licenseStatus: "PENDING" } }),
     prisma.driver.count({ where: { ...drivers, licenseStatus: "VALID" } }),
     prisma.driver.count({ where: { ...drivers, licenseStatus: "EXPIRED" } }),
-    prisma.route.count({ where: { deletedAt: null, companyId } }),
-    prisma.route.count({ where: { deletedAt: null, status: "ACTIVE", companyId } }),
+    prisma.route.count({ where: routeWhere }),
+    prisma.route.count({ where: { ...routeWhere, status: "ACTIVE" } }),
     prisma.gpsLatestLocation.count({ where: { timestamp: { gte: stale }, bus: buses } }),
     prisma.gpsLatestLocation.count({ where: { timestamp: { lt: stale }, bus: buses } }),
     prisma.routeComplianceState.groupBy({
@@ -85,25 +108,25 @@ export async function overview(scope: OverviewScope = {}) {
       _count: { _all: true },
     }),
     prisma.routeComplianceEvent.count({
-      where: { toStatus: "OFF_ROUTE", createdAt: { gte: today }, bus: companyId ? { companyId } : undefined },
+      where: { toStatus: "OFF_ROUTE", createdAt: { gte: today }, bus: tripBus },
     }),
-    prisma.alert.count({ where: { type: "OVERSPEED", createdAt: { gte: today }, ...busAlert } }),
-    prisma.alert.count({ where: { type: { in: ["SOS", "ACCIDENT"] }, status: "OPEN", ...busAlert } }),
+    prisma.alert.count({ where: { type: "OVERSPEED", createdAt: { gte: today }, ...problems } }),
+    prisma.alert.count({ where: { type: { in: ["SOS", "ACCIDENT"] }, status: "OPEN", ...problems } }),
     prisma.complaint.count({
       where: {
         status: { in: ["PENDING", "UNDER_REVIEW"] },
-        bus: companyId ? { companyId } : undefined,
+        ...problems,
       },
     }),
     prisma.sosRequest.count({
       where: {
         status: { in: ["OPEN", "ACKNOWLEDGED", "DISPATCHED", "INVESTIGATING", "RESPONDING"] },
-        bus: companyId ? { companyId } : undefined,
+        ...problems,
       },
     }),
     prisma.passenger.count({ where: { deletedAt: null } }),
     prisma.trip.count({
-      where: { status: "IN_PROGRESS", bus: companyId ? { companyId } : undefined },
+      where: { status: "IN_PROGRESS", bus: tripBus },
     }),
   ]);
 
@@ -149,21 +172,21 @@ export async function overview(scope: OverviewScope = {}) {
     dataLabel: "DEMO / SIMULATED operational metrics from this deployment",
     timezone: "Asia/Dhaka",
     method: "DATABASE_COUNTS",
-    scope: companyId ? "COMPANY" : "DEPLOYMENT",
+    scope: scopedLabel(scope),
     verificationLabel: "MANUAL / SIMULATED VERIFICATION",
     cards,
   };
 }
 
 export async function series(scope: OverviewScope = {}) {
-  const companyId = scope.companyId;
+  const problems = problemsFor(scope);
   const days = Array.from({ length: 7 }, (_, i) => {
     const d = new Date();
     d.setDate(d.getDate() - (6 - i));
     return d.toLocaleDateString("en-CA", { timeZone: "Asia/Dhaka" });
   });
   const since = dhakaDayBounds(days[0]).gte;
-  const busFilter = companyId ? { bus: { companyId } } : {};
+  const busFilter = scope.companyId || scope.cities ? { bus: busesFor(scope) } : {};
 
   const [daily, breakdown] = await Promise.all([
     Promise.all(
@@ -171,11 +194,11 @@ export async function series(scope: OverviewScope = {}) {
         const range = dhakaDayBounds(day);
         const [trips, speed, route, sos, complaints] = await Promise.all([
           prisma.trip.count({ where: { startedAt: range, ...busFilter } }),
-          prisma.alert.count({ where: { type: "OVERSPEED", createdAt: range, ...busFilter } }),
-          prisma.alert.count({ where: { type: "ROUTE_DEVIATION", createdAt: range, ...busFilter } }),
-          prisma.alert.count({ where: { type: "SOS", createdAt: range, ...busFilter } }),
+          prisma.alert.count({ where: { type: "OVERSPEED", createdAt: range, ...problems } }),
+          prisma.alert.count({ where: { type: "ROUTE_DEVIATION", createdAt: range, ...problems } }),
+          prisma.alert.count({ where: { type: "SOS", createdAt: range, ...problems } }),
           prisma.complaint.count({
-            where: { createdAt: range, bus: companyId ? { companyId } : undefined },
+            where: { createdAt: range, ...problems },
           }),
         ]);
         return { day, trips, speed, route, sos, complaints };
@@ -183,14 +206,14 @@ export async function series(scope: OverviewScope = {}) {
     ),
     prisma.complaint.groupBy({
       by: ["category"],
-      where: { createdAt: { gte: since }, bus: companyId ? { companyId } : undefined },
+      where: { createdAt: { gte: since }, ...problems },
       _count: { _all: true },
     }),
   ]);
 
   return {
     dataLabel: "DEMO",
-    scope: companyId ? "COMPANY" : "DEPLOYMENT",
+    scope: scopedLabel(scope),
     dailyTrips: daily.map((d) => ({ day: d.day, trips: d.trips })),
     speedViolations: daily.map((d) => ({ day: d.day, count: d.speed })),
     routeViolations: daily.map((d) => ({ day: d.day, count: d.route })),
@@ -202,7 +225,7 @@ export async function series(scope: OverviewScope = {}) {
 
 export async function busAnalytics(scope: OverviewScope = {}, query: { page?: string; pageSize?: string } = {}) {
   const { skip, take, page, pageSize } = pagination(query);
-  const where = busWhere(scope.companyId);
+  const where = busesFor(scope);
   const [rows, total] = await Promise.all([
     prisma.bus.findMany({
       where,
@@ -243,7 +266,7 @@ export async function busAnalytics(scope: OverviewScope = {}, query: { page?: st
 
 export async function driverAnalytics(scope: OverviewScope = {}, query: { page?: string; pageSize?: string } = {}) {
   const { skip, take, page, pageSize } = pagination(query);
-  const where = driverWhere(scope.companyId);
+  const where = driversFor(scope);
   const [rows, total] = await Promise.all([
     prisma.driver.findMany({
       where,
@@ -281,7 +304,9 @@ export async function driverAnalytics(scope: OverviewScope = {}, query: { page?:
 
 export async function routeAnalytics(scope: OverviewScope = {}, query: { page?: string; pageSize?: string } = {}) {
   const { skip, take, page, pageSize } = pagination(query);
-  const where: Prisma.RouteWhereInput = { deletedAt: null, companyId: scope.companyId };
+  const where: Prisma.RouteWhereInput = { deletedAt: null };
+  if (scope.companyId) where.companyId = scope.companyId;
+  if (scope.cities) where.AND = [routePlaceWhere(scope.cities)];
   const [rows, total] = await Promise.all([
     prisma.route.findMany({
       where,
@@ -314,11 +339,11 @@ export async function routeAnalytics(scope: OverviewScope = {}, query: { page?: 
 }
 
 export async function activity(scope: OverviewScope & { includeAudit?: boolean } = {}) {
-  const companyId = scope.companyId;
-  const busFilter = companyId ? { bus: { companyId } } : {};
+  const problems = problemsFor(scope);
+  const busFilter = scope.companyId || scope.cities ? { bus: busesFor(scope) } : {};
   const [alerts, events] = await Promise.all([
     prisma.alert.findMany({
-      where: busFilter,
+      where: problems,
       include: {
         bus: { select: { registrationNo: true, companyId: true } },
       },
@@ -326,7 +351,7 @@ export async function activity(scope: OverviewScope & { includeAudit?: boolean }
       take: 15,
     }),
     prisma.routeComplianceEvent.findMany({
-      where: { bus: companyId ? { companyId } : undefined },
+      where: busFilter,
       include: {
         bus: { select: { registrationNo: true } },
         route: { select: { code: true } },
@@ -346,7 +371,7 @@ export async function activity(scope: OverviewScope & { includeAudit?: boolean }
 
   return {
     dataLabel: "DEMO / SIMULATED",
-    scope: companyId ? "COMPANY" : "DEPLOYMENT",
+    scope: scopedLabel(scope),
     alerts: alerts.map((a) => ({
       id: a.id,
       type: a.type,

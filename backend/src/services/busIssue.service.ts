@@ -60,7 +60,7 @@ export async function listBusIssues(req: Request, busId: string) {
       companyId: true,
       driverId: true,
       operationalStatus: true,
-      route: { select: { allowedSpeed: true, name: true } },
+      route: { select: { allowedSpeed: true, name: true, city: true } },
       complianceState: { select: { status: true, deviationM: true } },
       latestLoc: { select: { speed: true } },
     },

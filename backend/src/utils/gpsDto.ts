@@ -36,6 +36,7 @@ export type OperationalGpsDto = Omit<PublicGpsDto, "projection"> & {
   driverId: string | null;
   tripId: string | null;
   companyId: string | null;
+  city: string | null;
   allowedSpeed: number | null;
   operationalStatus: string | null;
   complianceStatus?: RouteComplianceStatus | null;
@@ -67,7 +68,7 @@ type GpsRow = {
     routeId?: string | null;
     driverId?: string | null;
     companyId?: string | null;
-    route?: { name?: string; allowedSpeed?: number; city?: string } | null;
+    route?: { name?: string; allowedSpeed?: number; city?: string | null } | null;
     complianceState?: { status?: RouteComplianceStatus | null; deviationM?: unknown } | null;
   } | null;
 };
@@ -108,6 +109,7 @@ export function toOperationalGpsDto(row: GpsRow): OperationalGpsDto {
     driverId: row.driverId ?? row.bus?.driverId ?? null,
     tripId: row.tripId ?? null,
     companyId: row.bus?.companyId ?? null,
+    city: row.bus?.route?.city ?? null,
     allowedSpeed: row.allowedSpeed ?? row.bus?.route?.allowedSpeed ?? null,
     operationalStatus: row.bus?.operationalStatus ?? null,
     complianceStatus: row.complianceStatus ?? row.bus?.complianceState?.status ?? null,
