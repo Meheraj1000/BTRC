@@ -5,6 +5,9 @@ dist/
 out/
 coverage/
 *.log
+.tunnel-url
+.tunnel.pid
+.tunnel.lock
 .env
 .env.local
 .env.*.local

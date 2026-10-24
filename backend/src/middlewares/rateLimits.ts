@@ -1,5 +1,13 @@
+import type { Request } from "express";
 import rateLimit from "express-rate-limit";
 import { env } from "../config/env.js";
+
+/** Phone traffic arrives through the Vercel proxy, which sets this header to the real client. */
+function clientKey(req: Request) {
+  const marked = req.get("x-nirapad-client")?.trim() ?? "";
+  if (/^[0-9a-f.:]{3,64}$/i.test(marked)) return marked;
+  return req.socket.remoteAddress ?? "local";
+}
 
 /**
  * Limits (documented for Phase 02):
@@ -17,6 +25,7 @@ export const generalLimiter = rateLimit({
   max: env.RATE_LIMIT_MAX,
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: clientKey,
   message: { success: false, message: "Too many requests", data: null },
   skip: (req) =>
     req.path === "/health" ||
@@ -29,6 +38,7 @@ export const authLimiter = rateLimit({
   max: 30,
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: clientKey,
   message: { success: false, message: "Too many authentication attempts", data: null },
 });
 
@@ -37,6 +47,7 @@ export const gpsIngestLimiter = rateLimit({
   max: 2400,
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: clientKey,
   message: { success: false, message: "GPS ingest rate exceeded", data: null },
 });
 
@@ -45,6 +56,7 @@ export const gpsReadLimiter = rateLimit({
   max: 180,
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: clientKey,
   message: { success: false, message: "GPS read rate exceeded", data: null },
 });
 
@@ -53,6 +65,7 @@ export const sosLimiter = rateLimit({
   max: 15,
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: clientKey,
   message: { success: false, message: "Too many SOS submissions", data: null },
 });
 
@@ -61,6 +74,7 @@ export const complaintLimiter = rateLimit({
   max: 30,
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: clientKey,
   message: { success: false, message: "Too many complaint submissions", data: null },
 });
 
@@ -70,5 +84,6 @@ export const qrEmergencyLimiter = rateLimit({
   max: 8,
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: clientKey,
   message: { success: false, message: "Too many emergency submissions from this network", data: null },
 });

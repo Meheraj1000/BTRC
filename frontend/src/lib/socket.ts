@@ -9,8 +9,12 @@ let socket: Socket | null = null;
 
 export function getSocket() {
   if (socket) return socket;
+  const sameSite = typeof window !== "undefined" && WS === window.location.origin;
   socket = io(WS, {
-    transports: ["websocket"],
+    // The public site forwards live updates over HTTP. Vercel cannot upgrade that
+    // connection to a websocket, so the browser stays on polling there.
+    transports: sameSite ? ["polling"] : ["websocket"],
+    upgrade: !sameSite,
     auth: { token: getToken() },
     autoConnect: true,
   });

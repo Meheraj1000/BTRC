@@ -21,6 +21,8 @@ export const packErrors: Record<string, string> = {
   "Insufficient permission": "পর্যাপ্ত অনুমতি নেই",
   "Too many requests": "অনুরোধের সংখ্যা বেশি",
   "Too many authentication attempts": "প্রবেশের চেষ্টা বেশি হয়েছে",
+  "The office computer that runs this service is offline. Leave that computer on, then try again.":
+    "যে কম্পিউটারে এই সেবা চলছে সেটি বন্ধ আছে। কম্পিউটার চালু রেখে আবার চেষ্টা করুন।",
   "Too many SOS submissions": "জরুরি সংকেত বেশি পাঠানো হয়েছে",
   "Too many complaint submissions": "অভিযোগ বেশি জমা হয়েছে",
   "Invalid QR code": "কিউআর কোড সঠিক নয়",
