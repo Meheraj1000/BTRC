@@ -44,6 +44,7 @@ describe("GPS DTOs", () => {
     expect(dto).not.toHaveProperty("tripId");
     expect(dto).not.toHaveProperty("companyId");
     expect(dto).toHaveProperty("trackingState");
+    expect(dto.hasIssue).toBe(false);
   });
 
   it("includes operational fields only for authorized roles", () => {

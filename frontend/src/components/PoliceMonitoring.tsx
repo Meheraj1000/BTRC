@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
+import { busHasIssue } from "@/lib/busIssue";
 import { useI18n } from "@/lib/i18n";
 import { getSocket } from "@/lib/socket";
 import type { BusLive, Overview } from "@/lib/types";
@@ -33,6 +34,8 @@ function normalizeLive(row: Record<string, unknown>): BusLive {
     heading: Number(row.heading ?? 0),
     timestamp: String(row.timestamp ?? ""),
     statusColor: (row.statusColor as BusLive["statusColor"]) ?? "GREEN",
+    hasIssue: row.hasIssue === true,
+    operationalStatus: row.operationalStatus ? String(row.operationalStatus) : undefined,
     source: String(row.source ?? "SIMULATION"),
     dataLabel: String(row.dataLabel ?? "SIMULATED"),
     trackingState: row.trackingState === "STALE" ? "STALE" : "ONLINE",
@@ -116,6 +119,7 @@ export function PoliceMonitoring() {
   }, []);
 
   const cards = overview?.cards ?? {};
+  const issueIds = useMemo(() => new Set(buses.filter((b) => busHasIssue(b)).map((b) => b.busId)), [buses]);
   const pages = Math.max(1, Math.ceil(vehicleTotal / 8));
 
   return (
@@ -150,7 +154,7 @@ export function PoliceMonitoring() {
           <h2 className="font-display text-base font-semibold tracking-tight">{t("Live emergency map")}</h2>
           <span className="text-xs text-[var(--text-muted)]">
             {t(
-              "Bangladesh only · Vehicle logo = live GPS · Ring: green on route · amber warning · red off route · grey stale",
+              "Bangladesh only · Vehicle logo = live GPS · Ring: green clear · red open issue · grey stale",
             )}
           </span>
         </div>
@@ -214,7 +218,18 @@ export function PoliceMonitoring() {
               </thead>
               <tbody>
                 {vehicles.map((v) => (
-                  <tr key={v.id}>
+                  <tr
+                    key={v.id}
+                    className={
+                      issueIds.has(v.id)
+                      || v.complianceStatus === "OFF_ROUTE"
+                      || v.complianceStatus === "DEVIATING"
+                      || v.operationalStatus === "MAINTENANCE"
+                      || v.operationalStatus === "OFFLINE"
+                        ? "is-issue"
+                        : undefined
+                    }
+                  >
                     <td>
                       <Link
                         className="font-medium text-brand-700 underline"

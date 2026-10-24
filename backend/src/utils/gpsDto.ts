@@ -23,6 +23,7 @@ export type PublicGpsDto = {
   heading: number;
   timestamp: string;
   statusColor: "GREEN" | "YELLOW" | "RED";
+  hasIssue: boolean;
   routeName: string | null;
   dataLabel: "REAL" | "SIMULATED";
   trackingState: TrackingState;
@@ -54,6 +55,7 @@ type GpsRow = {
   timestamp: Date | string;
   source?: string;
   statusColor?: "GREEN" | "YELLOW" | "RED";
+  hasIssue?: boolean;
   registrationNo?: string | null;
   allowedSpeed?: number | null;
   complianceStatus?: RouteComplianceStatus | null;
@@ -89,7 +91,8 @@ export function toPublicGpsDto(row: GpsRow): PublicGpsDto {
     speed,
     heading: num(row.heading ?? 0),
     timestamp: iso(row.timestamp),
-    statusColor: row.statusColor ?? (speed > 50 ? "YELLOW" : "GREEN"),
+    statusColor: row.hasIssue ? "RED" : (row.statusColor ?? (speed > 50 ? "YELLOW" : "GREEN")),
+    hasIssue: Boolean(row.hasIssue) || row.statusColor === "RED",
     routeName: row.bus?.route?.name ?? null,
     dataLabel: row.source === "DEVICE" ? "REAL" : "SIMULATED",
     trackingState: trackingState(row.timestamp),

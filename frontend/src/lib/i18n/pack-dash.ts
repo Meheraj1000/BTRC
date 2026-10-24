@@ -17,8 +17,9 @@ export const packDash: Record<string, string> = {
   "Open SOS": "খোলা জরুরি সংকেত",
   "Open complaints": "খোলা অভিযোগ",
   "active": "সক্রিয়",
-  "Bangladesh only · Vehicle logo = live GPS · Ring: green on route · amber warning · red off route · grey stale · SIMULATED GPS":
-    "শুধু বাংলাদেশ · যান চিহ্ন = লাইভ জিপিএস · রিং: সবুজ রুটে · amber সতর্ক · লাল রুটের বাইরে · ধূসর পুরনো · সিমুলেটেড জিপিএস",
+  "Bangladesh only · Vehicle logo = live GPS · Ring: green clear · red open issue · grey stale · SIMULATED GPS":
+    "শুধু বাংলাদেশ · যান চিহ্ন = লাইভ জিপিএস · রিং: সবুজ স্বাভাবিক · লাল খোলা সমস্যা · ধূসর পুরনো · সিমুলেটেড জিপিএস",
+  "Open issue": "খোলা সমস্যা",
   "Search vehicles": "যান খুঁজুন",
   "Search registration": "নিবন্ধন খুঁজুন",
   "Filter vehicle status": "যানের অবস্থা ফিল্টার",
@@ -56,8 +57,8 @@ export const packDash: Record<string, string> = {
   "registered": "নিবন্ধিত",
   "Suspended drivers": "স্থগিত চালক",
   "Monitoring only": "শুধু নজরদারি",
-  "Bangladesh only · Vehicle logo = live GPS · Ring: green on route · amber warning · red off route · grey stale":
-    "শুধু বাংলাদেশ · যান চিহ্ন = লাইভ জিপিএস · রিং: সবুজ রুটে · amber সতর্ক · লাল রুটের বাইরে · ধূসর পুরনো",
+  "Bangladesh only · Vehicle logo = live GPS · Ring: green clear · red open issue · grey stale":
+    "শুধু বাংলাদেশ · যান চিহ্ন = লাইভ জিপিএস · রিং: সবুজ স্বাভাবিক · লাল খোলা সমস্যা · ধূসর পুরনো",
   "Click a registration for driver, vehicle details, and point of origin.":
     "চালক, যানের বিবরণ ও উৎপত্তি দেখতে নিবন্ধনে ক্লিক করুন।",
   "Filter GPS status": "জিপিএস অবস্থা ফিল্টার",

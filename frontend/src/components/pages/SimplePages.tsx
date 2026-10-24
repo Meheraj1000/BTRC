@@ -50,6 +50,8 @@ export function MapPage({ allow, title, listenOps = true }: { allow: RoleCode[];
           heading: Number(row.heading ?? 0),
           timestamp: String(row.timestamp),
           statusColor: (row.statusColor as BusLive["statusColor"]) ?? (Number(row.speed) > 50 ? "YELLOW" : "GREEN"),
+          hasIssue: row.hasIssue === true,
+          operationalStatus: row.operationalStatus ? String(row.operationalStatus) : undefined,
           trackingState: row.trackingState === "STALE" ? "STALE" : "ONLINE",
           complianceStatus: row.complianceStatus ? String(row.complianceStatus) : undefined,
           deviationM: row.deviationM == null ? undefined : Number(row.deviationM),

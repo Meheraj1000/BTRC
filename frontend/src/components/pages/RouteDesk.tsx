@@ -464,6 +464,8 @@ function toLive(row: Record<string, unknown>): BusLive {
     heading: Number(row.heading ?? 0),
     timestamp: String(row.timestamp ?? ""),
     statusColor: (row.statusColor as BusLive["statusColor"]) ?? "GREEN",
+    hasIssue: row.hasIssue === true,
+    operationalStatus: row.operationalStatus ? String(row.operationalStatus) : undefined,
     trackingState: row.trackingState === "STALE" ? "STALE" : "ONLINE",
     complianceStatus: row.complianceStatus ? String(row.complianceStatus) : undefined,
     deviationM: row.deviationM == null ? undefined : Number(row.deviationM),

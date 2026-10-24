@@ -35,6 +35,8 @@ export type BusLive = {
   heading: number;
   timestamp: string;
   statusColor?: "GREEN" | "YELLOW" | "RED";
+  hasIssue?: boolean;
+  operationalStatus?: string | null;
   source?: string;
   dataLabel?: string;
   allowedSpeed?: number;

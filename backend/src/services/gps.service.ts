@@ -5,7 +5,9 @@ import { prisma } from "../lib/prisma.js";
 import { broadcastAlert, broadcastBusLocation } from "../lib/socket.js";
 import { ApiError } from "../lib/apiResponse.js";
 import { parsePolyline, remainingDistanceKm, ruleBasedEtaMinutes } from "../utils/geo.js";
+import { busExperiencingIssue } from "../utils/busIssue.js";
 import { toOperationalGpsDto, toPublicGpsDto } from "../utils/gpsDto.js";
+import { openIssueBusIds } from "./busIssue.service.js";
 import { assertGpsJump, parseGpsTimestamp } from "../utils/gpsQuality.js";
 import { hasPermission } from "../utils/permissions.js";
 import { notifyCompanyOwner, notifyRoles, notifyUser } from "./notification.service.js";
@@ -159,8 +161,16 @@ export async function ingestLocation(
     tripId,
   });
 
-  const offRoute = compliance.status === "OFF_ROUTE";
-  const statusColor: "GREEN" | "YELLOW" | "RED" = overspeed || offRoute ? "YELLOW" : "GREEN";
+  const openCases = await openIssueBusIds();
+  const hasIssue = busExperiencingIssue({
+    complianceStatus: compliance.status,
+    operationalStatus: bus.operationalStatus,
+    speed: input.speed,
+    allowedSpeed,
+    overspeedMargin: env.GPS_OVERSPEED_MARGIN_KMH,
+    openCase: openCases.has(bus.id),
+  });
+  const statusColor: "GREEN" | "YELLOW" | "RED" = hasIssue ? "RED" : "GREEN";
 
   const row = {
     busId: bus.id,
@@ -176,6 +186,7 @@ export async function ingestLocation(
     tripId: tripId ?? null,
     allowedSpeed,
     statusColor,
+    hasIssue,
     source,
     complianceStatus: compliance.status,
     deviationM: compliance.deviationM,

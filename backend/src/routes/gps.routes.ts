@@ -16,7 +16,9 @@ import {
 } from "../services/gps.service.js";
 import { authenticateGpsDevice, markGpsDeviceSeen } from "../services/gpsDevice.service.js";
 import { haversineMeters } from "../utils/geo.js";
+import { busExperiencingIssue } from "../utils/busIssue.js";
 import { canSeeOperationalGps, projectGps, toPublicGpsDto } from "../utils/gpsDto.js";
+import { openIssueBusIds } from "../services/busIssue.service.js";
 import { param } from "../utils/http.js";
 import { assertCanViewBus } from "../services/bus.service.js";
 import { ownerCompanyId, pagination } from "../utils/scope.js";
@@ -24,6 +26,26 @@ import { ownerCompanyId, pagination } from "../utils/scope.js";
 async function ownerCompanyIfNeeded(req: Request) {
   if (!req.user?.roles.includes("TRANSPORT_OWNER")) return undefined;
   return ownerCompanyId(req);
+}
+
+function withIssueColor<T extends {
+  busId: string;
+  speed: unknown;
+  bus: {
+    operationalStatus?: string | null;
+    route?: { allowedSpeed?: number | null } | null;
+    complianceState?: { status?: string | null } | null;
+  };
+}>(row: T, open: Set<string>) {
+  const hasIssue = busExperiencingIssue({
+    complianceStatus: row.bus.complianceState?.status,
+    operationalStatus: row.bus.operationalStatus,
+    speed: Number(row.speed),
+    allowedSpeed: row.bus.route?.allowedSpeed ?? null,
+    overspeedMargin: env.GPS_OVERSPEED_MARGIN_KMH,
+    openCase: open.has(row.busId),
+  });
+  return { ...row, hasIssue, statusColor: hasIssue ? "RED" as const : "GREEN" as const };
 }
 
 function projectScoped(row: Parameters<typeof projectGps>[0], roles: Parameters<typeof projectGps>[1], ownerCompany?: string) {
@@ -93,8 +115,9 @@ router.get("/live", gpsReadLimiter, optionalAuth, async (req, res, next) => {
   try {
     const ownerCompany = await ownerCompanyIfNeeded(req);
     const latest = await getLatestLocations();
+    const open = await openIssueBusIds();
     const scoped = ownerCompany ? latest.filter((row) => row.bus.companyId === ownerCompany) : latest;
-    const items = scoped.map((row) => projectScoped(row, req.user?.roles, ownerCompany));
+    const items = scoped.map((row) => projectScoped(withIssueColor(row, open), req.user?.roles, ownerCompany));
     return ok(res, {
       projection: canSeeOperationalGps(req.user?.roles) ? "OPERATIONAL" : "PUBLIC",
       dataLabel: env.GPS_SOURCE_MODE === "DEVICE" ? "REAL" : "SIMULATED",
@@ -114,11 +137,12 @@ router.get("/nearby", gpsReadLimiter, optionalAuth, async (req, res, next) => {
       throw new ApiError("lat and lng query params are required", 422);
     }
     const boxed = await getLatestLocationsNear(lat, lng, radius);
+    const open = await openIssueBusIds();
     const ownerCompany = await ownerCompanyIfNeeded(req);
     const scoped = ownerCompany ? boxed.filter((row) => row.bus.companyId === ownerCompany) : boxed;
     const items = scoped
       .map((row) => ({
-        ...projectScoped(row, req.user?.roles, ownerCompany),
+        ...projectScoped(withIssueColor(row, open), req.user?.roles, ownerCompany),
         distanceM: haversineMeters(
           { lat, lng },
           { lat: Number(row.latitude), lng: Number(row.longitude) },
@@ -144,7 +168,8 @@ router.get("/buses/:id/location", gpsReadLimiter, optionalAuth, async (req, res,
     if (ownerCompany && latest.bus.companyId !== ownerCompany) {
       throw new ApiError("You cannot access another operator's resources", 403);
     }
-    return ok(res, projectScoped(latest, req.user?.roles, ownerCompany));
+    const open = await openIssueBusIds();
+    return ok(res, projectScoped(withIssueColor(latest, open), req.user?.roles, ownerCompany));
   } catch (err) {
     next(err);
   }

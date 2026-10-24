@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { CircleMarker, MapContainer, Marker, Polyline, Popup, TileLayer, useMap } from "react-leaflet";
 import L from "leaflet";
 import { brand } from "@/lib/brand";
+import { busHasIssue } from "@/lib/busIssue";
 import {
   BANGLADESH_CENTER,
   BANGLADESH_MAX_ZOOM,
@@ -25,11 +26,11 @@ type RouteLine = {
 
 const BD_BOUNDS = L.latLngBounds(BANGLADESH_SW, BANGLADESH_NE);
 
-function vehicleIcon(statusColor: string, heading = 0, selected = false) {
-  const size = selected ? 48 : 40;
+function vehicleIcon(statusColor: string, heading = 0, selected = false, issue = false) {
+  const size = selected || issue ? 48 : 40;
   return L.divIcon({
     className: "vehicle-marker-wrap",
-    html: `<div class="vehicle-marker ${selected ? "is-selected" : ""}" style="--status:${statusColor};--heading:${heading}deg;width:${size}px;height:${size}px">
+    html: `<div class="vehicle-marker ${selected ? "is-selected" : ""} ${issue ? "is-issue" : ""}" style="--status:${statusColor};--heading:${heading}deg;width:${size}px;height:${size}px">
       <span class="vehicle-marker-ring" aria-hidden="true"></span>
       <img class="vehicle-marker-logo" src="/vehicle-marker.svg" alt="" width="${size - 6}" height="${size - 6}" draggable="false" />
     </div>`,
@@ -40,9 +41,8 @@ function vehicleIcon(statusColor: string, heading = 0, selected = false) {
 }
 
 function colorFor(bus: BusLive) {
+  if (busHasIssue(bus)) return brand.error;
   if (bus.trackingState === "STALE" || bus.complianceStatus === "STALE") return brand.muted;
-  if (bus.complianceStatus === "OFF_ROUTE" || bus.statusColor === "RED") return brand.error;
-  if (bus.complianceStatus === "DEVIATING" || bus.statusColor === "YELLOW") return brand.warning;
   return brand.success;
 }
 
@@ -339,7 +339,8 @@ export default function LiveMapInner({
             <Marker
               key={b.busId}
               position={[Number(b.latitude), Number(b.longitude)]}
-              icon={vehicleIcon(colorFor(b), Number(b.heading ?? 0), selectedId === b.busId)}
+              zIndexOffset={busHasIssue(b) ? 800 : 0}
+              icon={vehicleIcon(colorFor(b), Number(b.heading ?? 0), selectedId === b.busId, busHasIssue(b))}
               eventHandlers={{ click: () => setSelectedId(b.busId) }}
             >
               <Popup>
@@ -359,6 +360,7 @@ export default function LiveMapInner({
                     {t("Route")}: {b.complianceStatus ?? "—"}
                     {b.deviationM != null ? ` · ${Math.round(b.deviationM)} m` : ""}
                   </div>
+                  {busHasIssue(b) && <div className="font-semibold text-red-700">{t("Open issue")}</div>}
                   <div>
                     {t("Updated")}: {b.timestamp ? new Date(b.timestamp).toLocaleTimeString() : "—"}
                   </div>

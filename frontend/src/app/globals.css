@@ -161,6 +161,34 @@ video {
     0 8px 18px rgba(11, 31, 51, 0.35);
 }
 
+.vehicle-marker.is-issue .vehicle-marker-ring {
+  border-color: #da291c;
+  border-width: 4px;
+  animation: vehicle-issue-pulse 1.6s ease-out infinite;
+}
+
+@keyframes vehicle-issue-pulse {
+  0% { box-shadow: 0 0 0 2px #ffffff, 0 0 0 0 rgba(218, 41, 28, 0.55); }
+  70% { box-shadow: 0 0 0 2px #ffffff, 0 0 0 12px rgba(218, 41, 28, 0); }
+  100% { box-shadow: 0 0 0 2px #ffffff, 0 0 0 0 rgba(218, 41, 28, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vehicle-marker.is-issue .vehicle-marker-ring {
+    animation: none;
+    box-shadow: 0 0 0 2px #ffffff, 0 0 0 6px rgba(218, 41, 28, 0.5);
+  }
+}
+
+table.data tbody tr.is-issue td {
+  background: #fdeceb;
+  box-shadow: inset 3px 0 0 #da291c;
+}
+
+table.data tbody tr.is-issue:hover td {
+  background: #f8d4d1;
+}
+
 .vehicle-marker-logo {
   display: block;
   width: calc(100% - 6px);
