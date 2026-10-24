@@ -194,4 +194,60 @@ export const packDash: Record<string, string> = {
   "Destination": "গন্তব্য",
   "system": "সিস্টেম",
   "e.g. TRK-DHK-0042": "যেমন TRK-DHK-0042",
+  "How to resolve this issue": "এই সমস্যা কীভাবে সমাধান করবেন",
+  "Issue details": "সমস্যার বিবরণ",
+  "Loading issue details…": "সমস্যার বিবরণ লোড হচ্ছে…",
+  "An alert, SOS, or complaint is still open for this vehicle.": "এই যানের একটি সতর্কতা, জরুরি সংকেত বা অভিযোগ এখনও খোলা।",
+  "Route drift": "রুট থেকে সরে যাওয়া",
+  "The vehicle is outside its assigned road.": "যানটি নির্ধারিত সড়কের বাইরে।",
+  "The vehicle is leaving its assigned road.": "যানটি নির্ধারিত সড়ক ছেড়ে যাচ্ছে।",
+  "Marked in maintenance": "রক্ষণাবেক্ষণে চিহ্নিত",
+  "This vehicle is marked in maintenance.": "এই যান রক্ষণাবেক্ষণে আছে।",
+  "Marked offline": "অফলাইন চিহ্নিত",
+  "This vehicle is marked offline.": "এই যান অফলাইন হিসেবে চিহ্নিত।",
+  "Current speed is above the route limit.": "বর্তমান গতি রুটের সীমার উপরে।",
+  "An SOS is recorded in this application. This is not a live 999 dispatch.": "এই অ্যাপে একটি জরুরি সংকেত রেকর্ড আছে। এটি সরাসরি ৯৯৯ প্রেরণ নয়।",
+  "Open complaint": "খোলা অভিযোগ",
+  "A passenger complaint is still open.": "একটি যাত্রী অভিযোগ এখনও খোলা।",
+  "Open alert": "খোলা সতর্কতা",
+  "An alert is still open.": "একটি সতর্কতা এখনও খোলা।",
+  "Resolve a bus issue": "বাসের সমস্যা সমাধান",
+  "Instructions for": "নির্দেশনা —",
+  "These steps explain how to clear a bus issue inside Nirapad Transit. An SOS here does not call 999 or send police or an ambulance. GPS stays simulated unless a real tracker is sending positions.":
+    "এই ধাপগুলো নিরাপদ ট্রানজিটের ভিতরে বাসের সমস্যা মোচনের নিয়ম। এখানকার জরুরি সংকেত ৯৯৯ কল করে না এবং পুলিশ বা অ্যাম্বুলেন্স পাঠায় না। আসল ট্র্যাকার অবস্থান না পাঠালে জিপিএস সিমুলেটেড থাকে।",
+  "Check the live map against the assigned route.": "লাইভ মানচিত্র নির্ধারিত রুটের সাথে মিলিয়ে দেখুন।",
+  "The driver returns the bus to that road, or the operator assigns the route the bus is actually running.":
+    "চালক বাসটি সেই সড়কে ফেরান, অথবা পরিচালক বাসটি যে রুটে চলছে সেই রুট নির্ধারণ করেন।",
+  "A monitor opens Alerts, acknowledges the route alert, and resolves it once the bus is back on the road and the record is no longer true.":
+    "নজরদার সতর্কতা খোলেন, রুটের সতর্কতা স্বীকার করেন, এবং বাস সড়কে ফিরে রেকর্ডটি আর সত্য না থাকলে সেটি নিষ্পন্ন করেন।",
+  "Open alerts": "সতর্কতা খুলুন",
+  "Open SOS desk": "জরুরি ডেস্ক খুলুন",
+  "Open vehicles": "যানের তালিকা খুলুন",
+  "Watch the next positions. A single noisy point is not yet off route.": "পরের অবস্থানগুলো দেখুন। একটি এলোমেলো বিন্দু এখনই রুটের বাইরে নয়।",
+  "If it keeps leaving the road, treat it as off route: return the bus or correct the assigned route.":
+    "সড়ক ছাড়া চলতে থাকলে একে রুটের বাইরে ধরুন: বাস ফেরান বা নির্ধারিত রুট ঠিক করুন।",
+  "Acknowledge the alert while it is being checked, then resolve it when the bus is back on the road.":
+    "যাচাই চলাকালীন সতর্কতা স্বীকার করুন, বাস সড়কে ফিরলে নিষ্পন্ন করুন।",
+  "The driver slows to the limit set on the route.": "চালক রুটে নির্ধারিত গতিসীমায় নামিয়ে আনেন।",
+  "A monitor acknowledges the overspeed alert, then resolves it after the speed stays within the limit.":
+    "নজরদার অতিরিক্ত গতির সতর্কতা স্বীকার করেন, গতি সীমার মধ্যে থাকলে নিষ্পন্ন করেন।",
+  "Open the SOS desk and read the bus, driver, and recorded location.": "জরুরি ডেস্ক খুলে বাস, চালক ও রেকর্ড করা অবস্থান পড়ুন।",
+  "Acknowledge it, then mark it investigating or responding while someone checks the vehicle.":
+    "সেটি স্বীকার করুন, তারপর যান যাচাই চলাকালীন তদন্ত বা সাড়া হিসেবে চিহ্নিত করুন।",
+  "Resolve it when the situation is finished, or mark a false alarm, then close the record.":
+    "পরিস্থিতি শেষ হলে নিষ্পন্ন করুন, অথবা ভুল সংকেত চিহ্নিত করে রেকর্ড বন্ধ করুন।",
+  "The person who sent it can cancel it while it is still open.": "যিনি পাঠিয়েছেন, খোলা থাকা অবস্থায় তিনি বাতিল করতে পারেন।",
+  "Open Complaints and find the reference for this bus.": "অভিযোগ খুলে এই বাসের রেফারেন্স খুঁজুন।",
+  "Set it under review and write an internal note about what was checked.": "পর্যালোচনাধীন করুন এবং যাচাইয়ের অভ্যন্তরীণ নোট লিখুন।",
+  "Resolve it with the outcome, or reject it when it does not stand. The red highlight clears after every open complaint on the bus is closed.":
+    "ফলাফলসহ নিষ্পন্ন করুন, অথবা না টিকলে বাতিল করুন। বাসের সব খোলা অভিযোগ বন্ধ হলে লাল চিহ্ন সরে যায়।",
+  "Open Alerts and filter by this registration number.": "সতর্কতা খুলে এই নিবন্ধন নম্বর দিয়ে খুঁজুন।",
+  "Acknowledge each open alert while it is being checked.": "যাচাই চলাকালীন প্রতিটি খোলা সতর্কতা স্বীকার করুন।",
+  "Resolve an alert only after the condition it describes has ended. Old unresolved alerts keep the bus red.":
+    "সতর্কতায় বর্ণিত অবস্থা শেষ হলে তবেই নিষ্পন্ন করুন। পুরনো অনিষ্পন্ন সতর্কতা বাসকে লাল রাখে।",
+  "Finish the workshop work and confirm the vehicle is fit to carry passengers.": "কারখানার কাজ শেষ করে যানটি যাত্রী বহনে উপযুক্ত কিনা নিশ্চিত করুন।",
+  "On the vehicle desk, set the operational status back to active.": "যান ডেস্কে কার্যকরী অবস্থা আবার সক্রিয় করুন।",
+  "Check that its tracker is connected, or that the simulated feed is running for this demo.":
+    "ট্র্যাকার সংযুক্ত আছে কিনা দেখুন, অথবা এই ডেমোতে সিমুলেটেড ফিড চলছে কিনা।",
+  "Set the operational status back to active when the vehicle should be in service.": "যানটি সেবায় ফিরলে কার্যকরী অবস্থা আবার সক্রিয় করুন।",
 };

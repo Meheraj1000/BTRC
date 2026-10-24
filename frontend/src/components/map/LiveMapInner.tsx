@@ -3,8 +3,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { CircleMarker, MapContainer, Marker, Polyline, Popup, TileLayer, useMap } from "react-leaflet";
 import L from "leaflet";
+import { api } from "@/lib/api";
 import { brand } from "@/lib/brand";
-import { busHasIssue } from "@/lib/busIssue";
+import { busHasIssue, localIssueDetails, resolveIssueHref, type BusIssueDetail } from "@/lib/busIssue";
 import {
   BANGLADESH_CENTER,
   BANGLADESH_MAX_ZOOM,
@@ -222,20 +223,46 @@ function MapResize() {
   return null;
 }
 
+function IssueLines({ issues }: { issues: BusIssueDetail[] }) {
+  const { t } = useI18n();
+  return (
+    <ul className="mt-1 space-y-1">
+      {issues.map((issue) => (
+        <li key={`${issue.kind}-${issue.label}-${issue.summaryText ?? ""}`}>
+          <span className="font-semibold text-red-800">{t(issue.label)}</span>
+          {issue.count != null && issue.count > 1 ? ` · ${issue.count}` : ""}
+          {issue.status ? ` · ${t(issue.status)}` : ""}
+          <div>
+            {issue.summaryText ?? ""}
+            {issue.summaryText && issue.summaryKey ? " — " : ""}
+            {issue.summaryKey ? t(issue.summaryKey) : ""}
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 export default function LiveMapInner({
   buses,
   routes = [],
   userLocation,
   sosLocation,
+  activeBusId,
+  onSelect,
 }: {
   buses: BusLive[];
   routes?: RouteLine[];
   userLocation?: { lat: number; lng: number } | null;
   sosLocation?: { lat: number; lng: number; label?: string } | null;
+  activeBusId?: string | null;
+  onSelect?: (busId: string) => void;
 }) {
   const { t } = useI18n();
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(activeBusId ?? null);
   const [viewReady, setViewReady] = useState(false);
+  const [issueDetails, setIssueDetails] = useState<BusIssueDetail[]>([]);
+  const [issueLoading, setIssueLoading] = useState(false);
 
   const bdBuses = useMemo(
     () => buses.filter((b) => isInBangladesh(Number(b.latitude), Number(b.longitude))),
@@ -265,11 +292,45 @@ export default function LiveMapInner({
     return pts;
   }, [bdBuses, bdRoutes, bdUser, bdSos]);
 
-  const selected = bdBuses.find((b) => b.busId === selectedId);
+  useEffect(() => {
+    if (activeBusId) setSelectedId(activeBusId);
+  }, [activeBusId]);
+
+  const selected = buses.find((b) => b.busId === selectedId);
+  const selectedIssue = selected != null && busHasIssue(selected);
+  const shownIssues = issueDetails.length ? issueDetails : (selected && selectedIssue ? localIssueDetails(selected) : []);
+
+  useEffect(() => {
+    if (!selectedId || !selectedIssue) {
+      setIssueDetails([]);
+      setIssueLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setIssueLoading(true);
+    api<{ issues: BusIssueDetail[] }>(`/buses/${selectedId}/issues`)
+      .then((data) => {
+        if (!cancelled) setIssueDetails(data.issues ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) setIssueDetails([]);
+      })
+      .finally(() => {
+        if (!cancelled) setIssueLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedId, selectedIssue]);
+
+  function choose(busId: string) {
+    setSelectedId(busId);
+    onSelect?.(busId);
+  }
 
   return (
-    <div className="map-frame flex flex-col">
-      <div className={`min-h-0 flex-1 ${viewReady ? "map-view-ready" : "map-view-pending"}`}>
+    <div className="flex flex-col gap-2">
+      <div className={`map-frame ${viewReady ? "map-view-ready" : "map-view-pending"}`}>
         <MapContainer
           // Seed center/zoom inside Bangladesh; bounds apply on create so neighbors never flash.
           center={BANGLADESH_CENTER}
@@ -341,9 +402,9 @@ export default function LiveMapInner({
               position={[Number(b.latitude), Number(b.longitude)]}
               zIndexOffset={busHasIssue(b) ? 800 : 0}
               icon={vehicleIcon(colorFor(b), Number(b.heading ?? 0), selectedId === b.busId, busHasIssue(b))}
-              eventHandlers={{ click: () => setSelectedId(b.busId) }}
+              eventHandlers={{ click: () => choose(b.busId) }}
             >
-              <Popup>
+              <Popup className={busHasIssue(b) ? "bus-issue-popup" : undefined}>
                 <div className="text-sm">
                   <div className="font-semibold">{b.registrationNo ?? b.bus?.registrationNo ?? b.busId}</div>
                   <div>{b.routeName ?? b.bus?.route?.name ?? t("Unassigned route")}</div>
@@ -360,7 +421,17 @@ export default function LiveMapInner({
                     {t("Route")}: {b.complianceStatus ?? "—"}
                     {b.deviationM != null ? ` · ${Math.round(b.deviationM)} m` : ""}
                   </div>
-                  {busHasIssue(b) && <div className="font-semibold text-red-700">{t("Open issue")}</div>}
+                  {busHasIssue(b) && (
+                    <>
+                      <IssueLines issues={b.busId === selectedId && shownIssues.length ? shownIssues : localIssueDetails(b)} />
+                      <a className="btn btn-primary mt-2 inline-flex" href={resolveIssueHref(
+                        { busId: b.busId, registrationNo: b.registrationNo ?? b.bus?.registrationNo },
+                        b.busId === selectedId && shownIssues.length ? shownIssues : localIssueDetails(b),
+                      )}>
+                        {t("How to resolve this issue")}
+                      </a>
+                    </>
+                  )}
                   <div>
                     {t("Updated")}: {b.timestamp ? new Date(b.timestamp).toLocaleTimeString() : "—"}
                   </div>
@@ -374,8 +445,25 @@ export default function LiveMapInner({
           ))}
         </MapContainer>
       </div>
-      {selected && (
-        <div className="shrink-0 border-t border-slate-200 bg-white px-3 py-2 text-xs leading-relaxed text-slate-600">
+      {selected && selectedIssue && (
+        <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-3 text-sm leading-relaxed text-red-950">
+          <div className="font-semibold">{t("Issue details")}</div>
+          <div className="break-all">{selected.registrationNo ?? selected.busId}</div>
+          {issueLoading && <p className="text-xs text-red-800">{t("Loading issue details…")}</p>}
+          <IssueLines issues={shownIssues} />
+          <a
+            className="btn btn-primary mt-2 inline-flex"
+            href={resolveIssueHref(
+              { busId: selected.busId, registrationNo: selected.registrationNo ?? selected.bus?.registrationNo },
+              shownIssues,
+            )}
+          >
+            {t("How to resolve this issue")}
+          </a>
+        </div>
+      )}
+      {selected && !selectedIssue && (
+        <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs leading-relaxed text-slate-600">
           {t("Selected")} <strong className="break-all">{selected.registrationNo ?? selected.busId}</strong>
           {" · "}
           {selected.trackingState ?? "ONLINE"}

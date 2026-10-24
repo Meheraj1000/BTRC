@@ -27,6 +27,8 @@ export function LiveMap(props: {
   }>;
   userLocation?: { lat: number; lng: number } | null;
   sosLocation?: { lat: number; lng: number; label?: string } | null;
+  activeBusId?: string | null;
+  onSelect?: (busId: string) => void;
 }) {
   return <Inner {...props} />;
 }

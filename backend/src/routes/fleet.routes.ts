@@ -37,6 +37,7 @@ import {
 } from "../services/driver.service.js";
 import { YEAR_MAX, YEAR_MIN } from "../utils/busDto.js";
 import { param } from "../utils/http.js";
+import { listBusIssues } from "../services/busIssue.service.js";
 import { connectGpsDevice, disconnectGpsDevice, listGpsDevices, registerGpsDevice } from "../services/gpsDevice.service.js";
 import { passwordSchema } from "../utils/password.js";
 import { ownerCompanyId } from "../utils/scope.js";
@@ -255,6 +256,14 @@ router.post("/buses", requirePermission("buses.manage"), validate(busCreateSchem
     const bus = await createBus(req, req.body);
     res.locals.entityId = bus.id;
     return ok(res, bus, "Bus created", 201);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.get("/buses/:id/issues", requirePermission("buses.read"), async (req, res, next) => {
+  try {
+    return ok(res, await listBusIssues(req, param(req, "id")));
   } catch (err) {
     next(err);
   }

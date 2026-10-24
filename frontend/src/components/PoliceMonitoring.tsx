@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
-import { busHasIssue } from "@/lib/busIssue";
+import { busHasIssue, vehicleRowHasIssue } from "@/lib/busIssue";
 import { useI18n } from "@/lib/i18n";
 import { getSocket } from "@/lib/socket";
 import type { BusLive, Overview } from "@/lib/types";
@@ -58,6 +58,7 @@ export function PoliceMonitoring() {
   const { t } = useI18n();
   const [overview, setOverview] = useState<Overview | null>(null);
   const [buses, setBuses] = useState<BusLive[]>([]);
+  const [pickedBusId, setPickedBusId] = useState<string | null>(null);
   const [routes, setRoutes] = useState<Array<{ id: string; name: string; polyline: Array<{ lat: number; lng: number }>; stops?: Array<{ name: string; latitude: number; longitude: number; sequence?: number }> }>>([]);
   const [vehicles, setVehicles] = useState<VehicleRow[]>([]);
   const [vehicleTotal, setVehicleTotal] = useState(0);
@@ -149,7 +150,7 @@ export function PoliceMonitoring() {
         <StatCard label="Overspeed today" value={cards.overspeedingAlerts ?? "—"} />
       </div>
 
-      <div>
+      <div id="live-monitoring-map">
         <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
           <h2 className="font-display text-base font-semibold tracking-tight">{t("Live emergency map")}</h2>
           <span className="text-xs text-[var(--text-muted)]">
@@ -158,7 +159,7 @@ export function PoliceMonitoring() {
             )}
           </span>
         </div>
-        <LiveMap buses={buses} routes={routes} />
+        <LiveMap buses={buses} routes={routes} activeBusId={pickedBusId} onSelect={setPickedBusId} />
       </div>
 
       <section className="card p-4">
@@ -220,15 +221,12 @@ export function PoliceMonitoring() {
                 {vehicles.map((v) => (
                   <tr
                     key={v.id}
-                    className={
-                      issueIds.has(v.id)
-                      || v.complianceStatus === "OFF_ROUTE"
-                      || v.complianceStatus === "DEVIATING"
-                      || v.operationalStatus === "MAINTENANCE"
-                      || v.operationalStatus === "OFFLINE"
-                        ? "is-issue"
-                        : undefined
-                    }
+                    className={vehicleRowHasIssue(v, issueIds) ? "is-issue" : undefined}
+                    onClick={() => {
+                      if (!vehicleRowHasIssue(v, issueIds)) return;
+                      setPickedBusId(v.id);
+                      document.getElementById("live-monitoring-map")?.scrollIntoView({ block: "start" });
+                    }}
                   >
                     <td>
                       <Link

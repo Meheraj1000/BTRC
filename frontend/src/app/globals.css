@@ -180,6 +180,14 @@ video {
   }
 }
 
+.leaflet-popup.bus-issue-popup .leaflet-popup-content-wrapper {
+  border: 2px solid #da291c;
+}
+
+table.data tbody tr.is-issue {
+  cursor: pointer;
+}
+
 table.data tbody tr.is-issue td {
   background: #fdeceb;
   box-shadow: inset 3px 0 0 #da291c;
