@@ -44,3 +44,17 @@ if (!parsed.success) {
 export const env = parsed.data;
 
 export const corsOrigins = env.CORS_ORIGINS.split(",").map((s) => s.trim()).filter(Boolean);
+
+const vercelAppHost = /^nirapad-transit(?:-[a-z0-9-]+)?\.vercel\.app$/i;
+
+/** Local origins from env, plus the hosted Next.js app on Vercel. */
+export function isCorsOriginAllowed(origin: string | undefined) {
+  if (!origin) return true;
+  if (corsOrigins.includes(origin)) return true;
+  try {
+    const url = new URL(origin);
+    return url.protocol === "https:" && vercelAppHost.test(url.host);
+  } catch {
+    return false;
+  }
+}

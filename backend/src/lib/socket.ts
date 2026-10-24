@@ -1,6 +1,6 @@
 import type { Server as HttpServer } from "node:http";
 import { Server } from "socket.io";
-import { corsOrigins } from "../config/env.js";
+import { isCorsOriginAllowed } from "../config/env.js";
 import { logger } from "../config/logger.js";
 import { prisma } from "./prisma.js";
 import { verifyAccessToken } from "./jwt.js";
@@ -10,7 +10,12 @@ let io: Server | null = null;
 
 export function initSocket(httpServer: HttpServer) {
   io = new Server(httpServer, {
-    cors: { origin: corsOrigins, credentials: true },
+    cors: {
+      origin(origin, callback) {
+        callback(null, isCorsOriginAllowed(origin));
+      },
+      credentials: true,
+    },
     pingInterval: 20000,
     pingTimeout: 15000,
   });
