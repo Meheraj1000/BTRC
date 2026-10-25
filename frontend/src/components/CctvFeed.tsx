@@ -18,6 +18,11 @@ export type CameraView = {
   dataLabel: "SIMULATED" | "EXTERNAL";
 };
 
+export type PlateMark = {
+  registration: string;
+  slot: number;
+};
+
 function hashCode(code: string) {
   let h = 2166136261;
   for (let i = 0; i < code.length; i += 1) {
@@ -27,7 +32,32 @@ function hashCode(code: string) {
   return h >>> 0;
 }
 
-function paint(ctx: CanvasRenderingContext2D, camera: CameraView, frame: number) {
+function vehicleRects(code: string, frame: number, width: number, height: number) {
+  const seed = hashCode(code);
+  const lanes = [0.62, 0.8, 0.91];
+  return [0, 1, 2, 3].map((index) => {
+    const speed = 2.2 + ((seed >> (index * 3)) & 7) * 0.45;
+    const span = width + 180;
+    const direction = index % 2 === 0 ? 1 : -1;
+    const travel = (seed + index * 220 + frame * speed * 6) % span;
+    return {
+      x: direction === 1 ? travel - 90 : span - travel - 90,
+      y: height * lanes[index % lanes.length],
+      w: 92,
+      h: 32,
+    };
+  });
+}
+
+function frameForSlot(code: string, slot: number, width: number, height: number) {
+  for (let frame = 0; frame < 240; frame += 1) {
+    const box = vehicleRects(code, frame, width, height)[slot];
+    if (box && box.x > 24 && box.x + box.w < width - 24) return frame;
+  }
+  return 0;
+}
+
+function paint(ctx: CanvasRenderingContext2D, camera: CameraView, frame: number, mark: PlateMark | null) {
   const { width: w, height: h } = ctx.canvas;
   const seed = hashCode(camera.code);
   const sky = ctx.createLinearGradient(0, 0, 0, h * 0.55);
@@ -66,20 +96,14 @@ function paint(ctx: CanvasRenderingContext2D, camera: CameraView, frame: number)
   ctx.setLineDash([]);
 
   if (camera.status === "ONLINE") {
-    const lanes = [0.62, 0.8, 0.91];
     const colors = ["#b23b32", "#1f6f8b", "#c8962e", "#ece7dc"];
-    for (let i = 0; i < 4; i += 1) {
-      const speed = 2.2 + ((seed >> (i * 3)) & 7) * 0.45;
-      const span = w + 180;
-      const dir = i % 2 === 0 ? 1 : -1;
-      const travel = (seed + i * 220 + frame * speed * 6) % span;
-      const x = dir === 1 ? travel - 90 : span - travel - 90;
-      const y = h * lanes[i % lanes.length];
-      ctx.fillStyle = colors[i];
-      ctx.fillRect(x, y, 92, 32);
+    vehicleRects(camera.code, frame, w, h).forEach((box, index) => {
+      ctx.fillStyle = colors[index];
+      ctx.fillRect(box.x, box.y, box.w, box.h);
       ctx.fillStyle = "rgba(186, 224, 255, 0.8)";
-      ctx.fillRect(x + (dir === 1 ? 58 : 10), y + 7, 22, 14);
-    }
+      const direction = index % 2 === 0 ? 1 : -1;
+      ctx.fillRect(box.x + (direction === 1 ? 58 : 10), box.y + 7, 22, 14);
+    });
   }
 
   const shade = ctx.createRadialGradient(w / 2, h / 2, h * 0.15, w / 2, h / 2, h * 0.78);
@@ -114,15 +138,25 @@ function paint(ctx: CanvasRenderingContext2D, camera: CameraView, frame: number)
     ctx.textAlign = "center";
     ctx.fillText(camera.status, w / 2, h / 2);
     ctx.textAlign = "left";
-  } else if (frame % 48 < 28) {
+  } else if (!mark && frame % 48 < 28) {
     ctx.fillStyle = "#e35d5d";
     ctx.beginPath();
     ctx.arc(w - 36, 36, 8, 0, Math.PI * 2);
     ctx.fill();
   }
+
+  if (camera.status === "ONLINE" && mark) {
+    const box = vehicleRects(camera.code, frame, w, h)[mark.slot] ?? vehicleRects(camera.code, frame, w, h)[0];
+    ctx.strokeStyle = "#e10600";
+    ctx.lineWidth = 6;
+    ctx.strokeRect(box.x - 8, box.y - 8, box.w + 16, box.h + 16);
+    ctx.fillStyle = "#e10600";
+    ctx.font = "700 18px sans-serif";
+    ctx.fillText(mark.registration, Math.min(Math.max(16, box.x - 8), w - 300), Math.max(28, box.y - 16));
+  }
 }
 
-export function CctvFeed({ camera, large = false }: { camera: CameraView; large?: boolean }) {
+export function CctvFeed({ camera, large = false, mark = null }: { camera: CameraView; large?: boolean; mark?: PlateMark | null }) {
   const { t } = useI18n();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [failed, setFailed] = useState(false);
@@ -136,16 +170,17 @@ export function CctvFeed({ camera, large = false }: { camera: CameraView; large?
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext("2d");
     if (!canvas || !ctx) return;
-    let frame = 0;
+    const paused = Boolean(mark);
+    let frame = paused ? frameForSlot(camera.code, mark?.slot ?? 0, canvas.width, canvas.height) : 0;
     let raf = 0;
     const draw = () => {
-      paint(ctx, camera, frame);
+      paint(ctx, camera, frame, paused ? mark : null);
       frame += 1;
-      if (camera.status === "ONLINE") raf = requestAnimationFrame(draw);
+      if (camera.status === "ONLINE" && !paused) raf = requestAnimationFrame(draw);
     };
     draw();
     return () => cancelAnimationFrame(raf);
-  }, [camera]);
+  }, [camera, mark]);
 
   if (camera.source === "HLS" && camera.streamUrl) {
     return (
@@ -174,7 +209,7 @@ export function CctvFeed({ camera, large = false }: { camera: CameraView; large?
       width={960}
       height={540}
       className="aspect-video w-full rounded-lg bg-ink-950"
-      aria-label={`${camera.name}, ${camera.city}`}
+      aria-label={mark ? `${mark.registration}, ${camera.name}, ${camera.city}` : `${camera.name}, ${camera.city}`}
     />
   );
 }

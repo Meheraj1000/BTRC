@@ -55,4 +55,48 @@ describe("Street cameras", () => {
       .send({ status: "OFFLINE" });
     expect(blocked.status).toBe(403);
   });
+
+  it("matches a plate only inside the officer's place and lists marked vehicles there", async () => {
+    const ctg = await login("police.ctg@nirapad.gov.bd");
+    const dhaka = await login("police@nirapad.gov.bd");
+    const passenger = await login("passenger.fatima@demo.bd");
+
+    const found = await request(app)
+      .get("/api/cameras/locate")
+      .query({ plate: "ctg metro a demo 31" })
+      .set("Authorization", `Bearer ${ctg.token}`);
+    expect(found.status).toBe(200);
+    expect(found.body.data.found).toBe(true);
+    expect(found.body.data.match.registrationNo).toBe("CTG-METRO-A-DEMO-31");
+    expect(found.body.data.match.camera.city).toBe("Chattogram");
+    expect(found.body.data.match.dataLabel).toBe("SIMULATED");
+    expect(found.body.data.match.slot).toBeGreaterThanOrEqual(0);
+    expect(found.body.data.match.slot).toBeLessThan(4);
+
+    const hidden = await request(app)
+      .get("/api/cameras/locate")
+      .query({ plate: "DHAKA-METRO-D-DEMO-11" })
+      .set("Authorization", `Bearer ${ctg.token}`);
+    expect(hidden.status).toBe(200);
+    expect(hidden.body.data.found).toBe(false);
+
+    const otherPlace = await request(app)
+      .get("/api/cameras/locate")
+      .query({ plate: "CTG-METRO-A-DEMO-31" })
+      .set("Authorization", `Bearer ${dhaka.token}`);
+    expect(otherPlace.body.data.found).toBe(false);
+
+    const denied = await request(app)
+      .get("/api/cameras/locate")
+      .query({ plate: "CTG-METRO-A-DEMO-31" })
+      .set("Authorization", `Bearer ${passenger.token}`);
+    expect(denied.status).toBe(403);
+
+    const marked = await request(app).get("/api/cameras/marked").set("Authorization", `Bearer ${ctg.token}`);
+    expect(marked.status).toBe(200);
+    const plates = (marked.body.data.items as Array<{ registrationNo: string; camera: { city: string } | null }>).map((row) => row.registrationNo);
+    expect(plates).toContain("CTG-METRO-A-DEMO-32");
+    expect(plates.some((plate) => plate.startsWith("DHAKA-"))).toBe(false);
+    expect(marked.body.data.items.every((row: { camera: { city: string } | null }) => row.camera == null || row.camera.city === "Chattogram")).toBe(true);
+  });
 });

@@ -1,9 +1,9 @@
-import type { CameraStatus, StreetCamera } from "@prisma/client";
+import type { AlertType, CameraStatus, StreetCamera } from "@prisma/client";
 import type { Request } from "express";
 import { DEMO_CAMERAS } from "../data/demoCameras.js";
 import { ApiError } from "../lib/apiResponse.js";
 import { prisma } from "../lib/prisma.js";
-import { canonicalCity, policeCityScope } from "../utils/policeArea.js";
+import { busPlaceWhere, canonicalCity, cityForPoint, policeCityScope } from "../utils/policeArea.js";
 
 const NONE = "00000000-0000-0000-0000-000000000000";
 
@@ -96,6 +96,112 @@ export async function updateCamera(
   if (Object.keys(data).length === 0) return toCamera(existing, true);
   const row = await prisma.streetCamera.update({ where: { id }, data });
   return toCamera(row, true);
+}
+
+const SUSPICIOUS_ALERTS: AlertType[] = ["OVERSPEED", "ROUTE_DEVIATION", "SOS", "ACCIDENT", "ABNORMAL_DRIVING"];
+
+const REASON_WORD: Record<string, string> = {
+  OVERSPEED: "Overspeed",
+  ROUTE_DEVIATION: "Route deviation",
+  SOS: "SOS",
+  ACCIDENT: "Accident",
+  ABNORMAL_DRIVING: "Abnormal driving",
+};
+
+function plateKey(value: string) {
+  return value.toUpperCase().replace(/[^A-Z0-9]/g, "");
+}
+
+function slotFor(registration: string) {
+  const key = plateKey(registration);
+  let hash = 0;
+  for (let i = 0; i < key.length; i += 1) hash = (hash + key.charCodeAt(i) * (i + 1)) % 4;
+  return hash;
+}
+
+function nearestCamera(cameras: StreetCamera[], city: string, latitude: number | null, longitude: number | null) {
+  const rows = cameras.filter((row) => row.city.toLowerCase() === city.toLowerCase());
+  const online = rows.filter((row) => row.status === "ONLINE");
+  const pool = online.length > 0 ? online : rows;
+  if (pool.length === 0) return null;
+  if (latitude == null || longitude == null) return pool[0];
+  return [...pool].sort((a, b) => {
+    const left = (a.latitude - latitude) ** 2 + (a.longitude - longitude) ** 2;
+    const right = (b.latitude - latitude) ** 2 + (b.longitude - longitude) ** 2;
+    return left - right;
+  })[0];
+}
+
+const busDetail = {
+  id: true,
+  registrationNo: true,
+  route: { select: { city: true } },
+  company: { select: { city: true } },
+  latestLoc: { select: { latitude: true, longitude: true } },
+  alerts: {
+    where: { status: { in: ["OPEN", "ACKNOWLEDGED"] as const }, type: { in: SUSPICIOUS_ALERTS } },
+    select: { type: true },
+    orderBy: { createdAt: "desc" as const },
+    take: 4,
+  },
+};
+
+type LocatedBus = {
+  registrationNo: string;
+  route: { city: string } | null;
+  company: { city: string } | null;
+  latestLoc: { latitude: { toString(): string }; longitude: { toString(): string } } | null;
+  alerts: { type: AlertType }[];
+};
+
+function toSighting(bus: LocatedBus, cameras: StreetCamera[]) {
+  const latitude = bus.latestLoc ? Number(bus.latestLoc.latitude) : null;
+  const longitude = bus.latestLoc ? Number(bus.latestLoc.longitude) : null;
+  const home = canonicalCity(bus.route?.city ?? bus.company?.city ?? "");
+  const seenAt = cityForPoint(latitude, longitude);
+  const city = seenAt === home ? seenAt : home;
+  const camera = nearestCamera(cameras, city, seenAt === city ? latitude : null, seenAt === city ? longitude : null);
+  const reasons = [...new Set(bus.alerts.map((alert) => REASON_WORD[alert.type]).filter(Boolean))];
+  return {
+    registrationNo: bus.registrationNo,
+    camera: camera ? toCamera(camera, true) : null,
+    slot: slotFor(bus.registrationNo),
+    suspicious: reasons.length > 0,
+    reasons,
+    dataLabel: "SIMULATED" as const,
+  };
+}
+
+export async function locateVehicle(req: Request, plate: string) {
+  const key = plateKey(plate);
+  if (key.length < 3) throw new ApiError("Enter a license plate", 400);
+  const cities = await policeCityScope(req);
+  const candidates = await prisma.bus.findMany({
+    where: { deletedAt: null, ...(cities ? { AND: [busPlaceWhere(cities)] } : {}) },
+    select: { id: true, registrationNo: true },
+  });
+  const hit = candidates.find((row) => plateKey(row.registrationNo) === key);
+  if (!hit) return { found: false as const, match: null };
+  const bus = await prisma.bus.findUnique({ where: { id: hit.id }, select: busDetail });
+  if (!bus) return { found: false as const, match: null };
+  const cameras = await prisma.streetCamera.findMany();
+  return { found: true as const, match: toSighting(bus, cameras) };
+}
+
+export async function listMarkedVehicles(req: Request) {
+  const cities = await policeCityScope(req);
+  const buses = await prisma.bus.findMany({
+    where: {
+      deletedAt: null,
+      alerts: { some: { status: { in: ["OPEN", "ACKNOWLEDGED"] }, type: { in: SUSPICIOUS_ALERTS } } },
+      ...(cities ? { AND: [busPlaceWhere(cities)] } : {}),
+    },
+    select: busDetail,
+    orderBy: { registrationNo: "asc" },
+    take: 12,
+  });
+  const cameras = await prisma.streetCamera.findMany();
+  return { items: buses.map((bus) => toSighting(bus, cameras)) };
 }
 
 export async function ensureDemoCameras() {

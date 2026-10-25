@@ -34,6 +34,23 @@ export const packOps: Record<string, string> = {
   "Only an administrator can attach a stream. Police accounts can watch, not change, cameras.":
     "শুধু প্রশাসক স্ট্রিম যোগ করতে পারেন। পুলিশ অ্যাকাউন্ট ক্যামেরা দেখতে পারে, বদলাতে পারে না।",
   "No cameras match this view.": "এই দৃশ্যে কোনো ক্যামেরা নেই।",
+  "Find a vehicle": "যান খুঁজুন",
+  "License plate": "লাইসেন্স প্লেট",
+  "Find vehicle": "যান খুঁজুন",
+  "Searching…": "খোঁজা হচ্ছে…",
+  "Show on camera": "ক্যামেরায় দেখুন",
+  "Vehicles marked for review": "পর্যালোচনার জন্য চিহ্নিত যান",
+  "No vehicles are marked for review.": "পর্যালোচনার জন্য কোনো যান চিহ্নিত নেই।",
+  "No vehicle with that plate is in the places you can view.": "আপনি যে এলাকা দেখতে পারেন সেখানে এই প্লেটের কোনো যান নেই।",
+  "No camera in that place can show this vehicle.": "এই এলাকায় এই যান দেখানোর মতো কোনো ক্যামেরা নেই।",
+  "The search matches this registration to the vehicle's latest position, pauses the demonstration picture, and outlines that vehicle in red. It does not read a plate from a camera.":
+    "এই অনুসন্ধান নিবন্ধন নম্বরকে যানের সর্বশেষ অবস্থানের সাথে মিলায়, প্রদর্শনী ছবি থামায় এবং যানটিকে লাল দাগে ঘিরে। এটি ক্যামেরার ছবি থেকে প্লেট পড়ে না।",
+  "These vehicles have an open speed, route, accident, or help alert in the places you can view. The mark comes from those records, not from a camera model.":
+    "এই যানগুলোর গতি, রুট, দুর্ঘটনা বা সহায়তার খোলা সতর্কতা আছে। চিহ্ন সেই রেকর্ড থেকে আসে, ক্যামেরা মডেল থেকে নয়।",
+  "Paused on this registration. The red outline is drawn on the demonstration picture.":
+    "এই নিবন্ধনে ছবি থামানো হয়েছে। লাল দাগ প্রদর্শনী ছবিতে আঁকা।",
+  "Accident": "দুর্ঘটনা",
+  "Abnormal driving": "অস্বাভাবিক চালনা",
   "External stream": "বাহ্যিক স্ট্রিম",
   "Demonstration picture": "প্রদর্শনী ছবি",
   "All complaints": "সব অভিযোগ",

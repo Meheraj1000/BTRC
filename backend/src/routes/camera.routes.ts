@@ -22,9 +22,29 @@ const updateBody = z.object({
   status: z.nativeEnum(CameraStatus).optional(),
 });
 
+const plateQuery = z.object({
+  plate: z.string().trim().min(3).max(40),
+});
+
 router.get("/cameras", requirePermission("cameras.read"), validate(listQuery, "query"), async (req, res, next) => {
   try {
     return ok(res, await cameras.listCameras(req, req.query as z.infer<typeof listQuery>));
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.get("/cameras/locate", requirePermission("cameras.read"), validate(plateQuery, "query"), async (req, res, next) => {
+  try {
+    return ok(res, await cameras.locateVehicle(req, String(req.query.plate ?? "")));
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.get("/cameras/marked", requirePermission("cameras.read"), async (req, res, next) => {
+  try {
+    return ok(res, await cameras.listMarkedVehicles(req));
   } catch (err) {
     next(err);
   }
