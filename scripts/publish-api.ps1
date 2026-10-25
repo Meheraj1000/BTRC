@@ -1,5 +1,7 @@
-# Keeps one public link to the API on this PC, and points the Vercel site at it
-# when that link changes. The phone always calls https://nirapad-transit.vercel.app.
+# Keeps Postgres, the API, and one public link running on this PC.
+# The phone always calls https://nirapad-transit.vercel.app.
+param([switch]$Loop)
+
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
 $log = Join-Path $root ".tunnel.log"
@@ -40,6 +42,41 @@ function Test-TunnelHealth([string]$url) {
   }
 }
 
+function Start-DataStores {
+  $compose = Join-Path $root "docker-compose.yml"
+  $previous = $ErrorActionPreference
+  $ErrorActionPreference = "Continue"
+  docker compose -f $compose up -d db redis | Out-Null
+  $ErrorActionPreference = $previous
+}
+
+function Test-LocalApi {
+  try {
+    $res = Invoke-WebRequest -Uri "http://127.0.0.1:4000/health" -UseBasicParsing -TimeoutSec 5
+    return $res.StatusCode -eq 200
+  } catch {
+    return $false
+  }
+}
+
+function Start-Api {
+  Get-CimInstance Win32_Process -Filter "Name = 'node.exe'" | Where-Object {
+    $_.CommandLine -and (
+      $_.CommandLine -like "*dev:backend*" -or
+      $_.CommandLine -like "*dev -w backend*" -or
+      $_.CommandLine -like "*tsx*watch src/index.ts*"
+    )
+  } | ForEach-Object {
+    Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue
+  }
+  Start-Sleep -Seconds 1
+  $node = "C:\Program Files\nodejs\node.exe"
+  $tsx = Join-Path $root "node_modules\tsx\dist\cli.mjs"
+  Start-Process -FilePath $node -WorkingDirectory (Join-Path $root "backend") -WindowStyle Hidden -ArgumentList @(
+    $tsx, "watch", "src/index.ts"
+  )
+}
+
 function Start-Tunnel {
   if (Test-Path $log) { Remove-Item $log -Force -ErrorAction SilentlyContinue }
   $env:TUNNEL_TRANSPORT_PROTOCOL = "http2"
@@ -55,9 +92,21 @@ function Start-Tunnel {
   )
 }
 
+function Invoke-Keep {
+if (-not (Test-LocalApi)) {
+  Start-DataStores
+  Start-Api
+  $apiUp = $false
+  for ($i = 0; $i -lt 40; $i++) {
+    Start-Sleep -Seconds 2
+    if (Test-LocalApi) { $apiUp = $true; break }
+  }
+  if (-not $apiUp) { throw "The API on port 4000 did not start." }
+}
+
 if (Test-Path $lock) {
   $age = (Get-Date) - (Get-Item $lock).LastWriteTime
-  if ($age.TotalMinutes -lt 12) { exit 0 }
+  if ($age.TotalMinutes -lt 12) { return }
   Remove-Item $lock -Force -ErrorAction SilentlyContinue
 }
 
@@ -68,7 +117,7 @@ if (Test-Path $state) { $saved = (Get-Content $state -Raw).Trim() }
 $running = @(Our-Tunnels)
 if ($running.Count -gt 0 -and $saved -and (Test-TunnelHealth $saved)) {
   Write-Output "UNCHANGED $saved"
-  exit 0
+  return
 }
 
 Get-CimInstance Win32_Process -Filter "Name = 'cloudflared.exe'" | ForEach-Object {
@@ -88,22 +137,32 @@ if (-not $url) { throw "The public API link did not come up. The API on port 400
 
 if ($url -eq $saved) {
   Write-Output "RESTORED $url"
-  exit 0
+  return
 }
 
 New-Item -ItemType File -Path $lock -Force | Out-Null
 try {
   Set-Location $root
-  npx vercel env add API_ORIGIN --environment production,preview,development --value $url --force --no-sensitive --yes --cwd frontend --project nirapad-transit
-  if ($LASTEXITCODE -ne 0) { throw "Could not update API_ORIGIN" }
-  npx vercel env add NEXT_PUBLIC_API_URL --environment production,preview,development --value "$site/api" --force --no-sensitive --yes --cwd frontend --project nirapad-transit
-  if ($LASTEXITCODE -ne 0) { throw "Could not update NEXT_PUBLIC_API_URL" }
-  npx vercel env add NEXT_PUBLIC_WS_URL --environment production,preview,development --value $site --force --no-sensitive --yes --cwd frontend --project nirapad-transit
-  if ($LASTEXITCODE -ne 0) { throw "Could not update NEXT_PUBLIC_WS_URL" }
-  npx vercel deploy --cwd frontend --prod --yes --project nirapad-transit
-  if ($LASTEXITCODE -ne 0) { throw "Production deploy failed" }
+  node scripts/set-origin.mjs $url
+  if ($LASTEXITCODE -ne 0) { throw "Could not publish the API address" }
   Set-Content -Path $state -Value $url -NoNewline
   Write-Output "PUBLISHED $url"
 } finally {
   Remove-Item $lock -Force -ErrorAction SilentlyContinue
+}
+}
+
+if ($Loop) {
+  $mutex = New-Object System.Threading.Mutex($false, "Global\NirapadTransitKeepAlive")
+  if (-not $mutex.WaitOne(0)) { exit 0 }
+  while ($true) {
+    try {
+      Invoke-Keep
+    } catch {
+      Write-Output $_.Exception.Message
+    }
+    Start-Sleep -Seconds 20
+  }
+} else {
+  Invoke-Keep
 }

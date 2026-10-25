@@ -14,6 +14,7 @@ import routeRoutes from "./routes/route.routes.js";
 import lostFoundRoutes from "./routes/lostfound.routes.js";
 import publicRoutes from "./routes/public.routes.js";
 import safetyRoutes from "./routes/safety.routes.js";
+import cameraRoutes from "./routes/camera.routes.js";
 import tripRoutes from "./routes/trip.routes.js";
 import userRoutes from "./routes/users.routes.js";
 
@@ -56,6 +57,7 @@ export function createApp() {
   app.use(`${p}/trips`, tripRoutes);
   app.use(`${p}`, safetyRoutes);
   app.use(`${p}`, lostFoundRoutes);
+  app.use(`${p}`, cameraRoutes);
   app.use(`${p}`, platformRoutes);
 
   app.use(notFound);

@@ -27,6 +27,17 @@ enum UserStatus {
   SUSPENDED
 }
 
+enum CameraStatus {
+  ONLINE
+  OFFLINE
+  MAINTENANCE
+}
+
+enum CameraSource {
+  SIMULATED
+  HLS
+}
+
 enum LicenseStatus {
   VALID
   EXPIRED
@@ -314,6 +325,26 @@ model PoliceArea {
   @@unique([userId, city])
   @@index([userId])
   @@map("police_areas")
+}
+
+/** Demonstration street camera. Not a connection to a real CCTV network. */
+model StreetCamera {
+  id        String       @id @default(uuid())
+  code      String       @unique
+  name      String
+  city      String
+  area      String
+  latitude  Float
+  longitude Float
+  status    CameraStatus @default(ONLINE)
+  source    CameraSource @default(SIMULATED)
+  streamUrl String?
+  facing    String?
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@index([city])
+  @@map("street_cameras")
 }
 
 model RefreshToken {

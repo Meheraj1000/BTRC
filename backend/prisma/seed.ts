@@ -741,6 +741,8 @@ async function main() {
   console.log("Accounts: admin@nirapad.gov.bd, government@nirapad.gov.bd, brta@nirapad.gov.bd,");
   console.log("Police places: police@nirapad.gov.bd (Dhaka), police.ctg@nirapad.gov.bd, police.sylhet@nirapad.gov.bd, police.rajshahi@nirapad.gov.bd, police.khulna@nirapad.gov.bd");
   console.log("owner.greenline@demo.bd, driver.rahim@demo.bd, passenger.fatima@demo.bd");
+  const { ensureDemoCameras } = await import("../src/services/camera.service.js");
+  await ensureDemoCameras();
 }
 
 main()

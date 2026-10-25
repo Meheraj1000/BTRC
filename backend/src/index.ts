@@ -9,8 +9,23 @@ const app = createApp();
 const server = createServer(app);
 initSocket(server);
 
+async function waitForDatabase() {
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= 30; attempt += 1) {
+    try {
+      await prisma.$connect();
+      return;
+    } catch (err) {
+      lastError = err;
+      logger.error("database_not_ready", { attempt });
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+    }
+  }
+  throw lastError;
+}
+
 async function main() {
-  await prisma.$connect();
+  await waitForDatabase();
   server.on("error", (err: NodeJS.ErrnoException) => {
     if (err.code === "EADDRINUSE") {
       logger.error("port_in_use", {

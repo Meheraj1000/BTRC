@@ -42,6 +42,8 @@ export const PERMISSIONS = [
   "audit.read",
   "simulator.control",
   "notifications.read",
+  "cameras.read",
+  "cameras.manage",
 ] as const;
 
 export type PermissionCode = (typeof PERMISSIONS)[number];
@@ -64,6 +66,7 @@ export const ROLE_PERMISSIONS: Record<RoleCode, PermissionCode[]> = {
     "analytics.read",
     "reports.read",
     "notifications.read",
+    "cameras.read",
   ],
   BRTA: [
     "buses.read",
@@ -99,6 +102,7 @@ export const ROLE_PERMISSIONS: Record<RoleCode, PermissionCode[]> = {
     "analytics.read",
     "reports.read",
     "notifications.read",
+    "cameras.read",
   ],
   TRANSPORT_OWNER: [
     "buses.manage",

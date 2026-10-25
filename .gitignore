@@ -8,6 +8,7 @@ coverage/
 .tunnel-url
 .tunnel.pid
 .tunnel.lock
+.edge-config.json
 .env
 .env.local
 .env.*.local

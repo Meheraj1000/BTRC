@@ -63,7 +63,7 @@ function LoginForm() {
         <div className="brand-banner mb-4 rounded-xl px-3 py-2 text-xs">
           {t("Demo password for all seeded accounts:")} <strong>Demo@12345</strong>
         </div>
-        <form onSubmit={onSubmit} className="auth-panel">
+        <form onSubmit={onSubmit} className="auth-panel" noValidate>
           <h1 className="font-display text-2xl font-semibold tracking-tight">{t("Sign in")}</h1>
           <p className="mt-1 text-sm text-[var(--text-muted)]">
             {t("Role-based access for the national transport command demo.")}
@@ -74,7 +74,11 @@ function LoginForm() {
             className="input mt-1"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            type="email"
+            type="text"
+            inputMode="email"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
             autoComplete="username"
             required
           />
