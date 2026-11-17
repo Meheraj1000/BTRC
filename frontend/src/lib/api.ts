@@ -1,7 +1,7 @@
 import type { ApiOk } from "./types";
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api";
-const OFFLINE = "The office computer that runs this service is offline. Leave that computer on, then try again.";
+const OFFLINE = "The API service is temporarily unavailable. Please try again later.";
 
 async function readJson(res: Response) {
   const text = await res.text();

@@ -97,7 +97,6 @@ export const packOps: Record<string, string> = {
   "SOS category": "জরুরি সংকেতের বিভাগ",
   "Safety": "নিরাপত্তা",
   "Medical": "চিকিৎসা",
-  "Accident": "দুর্ঘটনা",
   "Optional details for monitors": "নজরদারির জন্য ঐচ্ছিক বিবরণ",
   "Confirm: record an application SOS? This is a demo workflow only.":
     "নিশ্চিত করুন: অ্যাপে জরুরি সংকেত রেকর্ড করবেন? এটি শুধু ডেমো প্রক্রিয়া।",

@@ -1,13 +1,14 @@
 import { NextRequest } from "next/server";
 
 export const OFFLINE =
-  "The office computer that runs this service is offline. Leave that computer on, then try again.";
+  "The API service is temporarily unavailable. Please try again later.";
 
 let cached: { origin: string; at: number } | null = null;
 
 export async function resolveOrigin() {
-  if (cached && Date.now() - cached.at < 4000) return cached.origin;
   const fallback = (process.env.API_ORIGIN ?? "").replace(/\/$/, "");
+  if (fallback) return fallback;
+  if (cached && Date.now() - cached.at < 4000) return cached.origin;
   const connection = process.env.EDGE_CONFIG;
   if (!connection) return fallback;
   try {

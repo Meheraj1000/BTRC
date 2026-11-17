@@ -18,9 +18,7 @@ function Our-Tunnels {
 }
 
 function Stop-OtherTunnels {
-  Get-CimInstance Win32_Process -Filter "Name = 'cloudflared.exe'" | Where-Object {
-    -not ($_.CommandLine -and $_.CommandLine -like "*.tunnel.log*")
-  } | ForEach-Object {
+  Our-Tunnels | ForEach-Object {
     Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue
   }
 }
@@ -38,7 +36,19 @@ function Test-TunnelHealth([string]$url) {
     $res = Invoke-WebRequest -Uri "$url/health" -UseBasicParsing -TimeoutSec 20
     return $res.StatusCode -eq 200
   } catch {
-    return $false
+    try {
+      $uri = [Uri]$url
+      $dns = Invoke-RestMethod -Uri "https://dns.google/resolve?name=$([Uri]::EscapeDataString($uri.Host))&type=A" -TimeoutSec 10
+      $ip = $dns.Answer | Where-Object { $_.type -eq 1 } | Select-Object -First 1 -ExpandProperty data
+      if (-not $ip) { return $false }
+
+      & curl.exe --fail --silent --show-error --connect-timeout 5 --max-time 15 `
+        --resolve "$($uri.Host):$($uri.Port):$ip" "$url/health" --output NUL
+      return $LASTEXITCODE -eq 0
+    } catch {
+      Write-Output "Tunnel health check failed: $($_.Exception.Message)"
+      return $false
+    }
   }
 }
 
@@ -120,7 +130,7 @@ if ($running.Count -gt 0 -and $saved -and (Test-TunnelHealth $saved)) {
   return
 }
 
-Get-CimInstance Win32_Process -Filter "Name = 'cloudflared.exe'" | ForEach-Object {
+Our-Tunnels | ForEach-Object {
   Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue
 }
 Start-Sleep -Seconds 1

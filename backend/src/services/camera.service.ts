@@ -1,4 +1,4 @@
-import type { AlertType, CameraStatus, StreetCamera } from "@prisma/client";
+import type { AlertStatus, AlertType, CameraStatus, StreetCamera } from "@prisma/client";
 import type { Request } from "express";
 import { DEMO_CAMERAS } from "../data/demoCameras.js";
 import { ApiError } from "../lib/apiResponse.js";
@@ -99,6 +99,7 @@ export async function updateCamera(
 }
 
 const SUSPICIOUS_ALERTS: AlertType[] = ["OVERSPEED", "ROUTE_DEVIATION", "SOS", "ACCIDENT", "ABNORMAL_DRIVING"];
+const ACTIVE_ALERT_STATUSES: AlertStatus[] = ["OPEN", "ACKNOWLEDGED"];
 
 const REASON_WORD: Record<string, string> = {
   OVERSPEED: "Overspeed",
@@ -139,7 +140,7 @@ const busDetail = {
   company: { select: { city: true } },
   latestLoc: { select: { latitude: true, longitude: true } },
   alerts: {
-    where: { status: { in: ["OPEN", "ACKNOWLEDGED"] as const }, type: { in: SUSPICIOUS_ALERTS } },
+    where: { status: { in: ACTIVE_ALERT_STATUSES }, type: { in: SUSPICIOUS_ALERTS } },
     select: { type: true },
     orderBy: { createdAt: "desc" as const },
     take: 4,
@@ -149,7 +150,7 @@ const busDetail = {
 type LocatedBus = {
   registrationNo: string;
   route: { city: string } | null;
-  company: { city: string } | null;
+  company: { city: string | null } | null;
   latestLoc: { latitude: { toString(): string }; longitude: { toString(): string } } | null;
   alerts: { type: AlertType }[];
 };
@@ -193,7 +194,7 @@ export async function listMarkedVehicles(req: Request) {
   const buses = await prisma.bus.findMany({
     where: {
       deletedAt: null,
-      alerts: { some: { status: { in: ["OPEN", "ACKNOWLEDGED"] }, type: { in: SUSPICIOUS_ALERTS } } },
+      alerts: { some: { status: { in: ACTIVE_ALERT_STATUSES }, type: { in: SUSPICIOUS_ALERTS } } },
       ...(cities ? { AND: [busPlaceWhere(cities)] } : {}),
     },
     select: busDetail,

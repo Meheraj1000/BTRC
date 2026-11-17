@@ -13,7 +13,7 @@ if (!origin.startsWith("https://")) {
 const root = join(import.meta.dirname, "..");
 const localPath = join(root, ".edge-config.json");
 const authPath = join(homedir(), "AppData/Roaming/com.vercel.cli/Data/auth.json");
-const teamSlug = "meherajs-projects-19a7c1f7";
+const teamSlug = "team_8VxbMGQGRbI8x2VON2hmSPsl";
 const slug = "nirapad-origin";
 
 const auth = JSON.parse(readFileSync(authPath, "utf8"));

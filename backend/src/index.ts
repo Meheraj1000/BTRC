@@ -6,51 +6,56 @@ import { initSocket } from "./lib/socket.js";
 import { prisma } from "./lib/prisma.js";
 
 const app = createApp();
-const server = createServer(app);
-initSocket(server);
 
-async function waitForDatabase() {
-  let lastError: unknown;
-  for (let attempt = 1; attempt <= 30; attempt += 1) {
-    try {
-      await prisma.$connect();
-      return;
-    } catch (err) {
-      lastError = err;
-      logger.error("database_not_ready", { attempt });
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+export default app;
+
+if (process.env.VERCEL !== "1") {
+  const server = createServer(app);
+  initSocket(server);
+
+  async function waitForDatabase() {
+    let lastError: unknown;
+    for (let attempt = 1; attempt <= 30; attempt += 1) {
+      try {
+        await prisma.$connect();
+        return;
+      } catch (err) {
+        lastError = err;
+        logger.error("database_not_ready", { attempt });
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+      }
     }
+    throw lastError;
   }
-  throw lastError;
-}
 
-async function main() {
-  await waitForDatabase();
-  server.on("error", (err: NodeJS.ErrnoException) => {
-    if (err.code === "EADDRINUSE") {
-      logger.error("port_in_use", {
-        port: env.BACKEND_PORT,
-        hint: "The API is already running. Open http://localhost:4000/health — do not start a second copy.",
-      });
-      process.exit(0);
-    }
-    throw err;
-  });
-  server.listen(env.BACKEND_PORT, () => {
-    logger.info("server_started", {
-      port: env.BACKEND_PORT,
-      gpsMode: env.GPS_SOURCE_MODE,
-      timezone: "Asia/Dhaka",
+  async function main() {
+    await waitForDatabase();
+    server.on("error", (err: NodeJS.ErrnoException) => {
+      if (err.code === "EADDRINUSE") {
+        logger.error("port_in_use", {
+          port: env.BACKEND_PORT,
+          hint: "The API is already running. Open http://localhost:4000/health — do not start a second copy.",
+        });
+        process.exit(0);
+      }
+      throw err;
     });
+    server.listen(env.BACKEND_PORT, () => {
+      logger.info("server_started", {
+        port: env.BACKEND_PORT,
+        gpsMode: env.GPS_SOURCE_MODE,
+        timezone: "Asia/Dhaka",
+      });
+    });
+  }
+
+  main().catch((err) => {
+    logger.error("server_failed", { err });
+    process.exit(1);
+  });
+
+  process.on("SIGTERM", async () => {
+    await prisma.$disconnect();
+    server.close(() => process.exit(0));
   });
 }
-
-main().catch((err) => {
-  logger.error("server_failed", { err });
-  process.exit(1);
-});
-
-process.on("SIGTERM", async () => {
-  await prisma.$disconnect();
-  server.close(() => process.exit(0));
-});
