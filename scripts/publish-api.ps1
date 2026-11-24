@@ -102,6 +102,40 @@ function Start-Tunnel {
   )
 }
 
+function Read-PublishedOrigin {
+  $edge = Join-Path $root ".edge-config.json"
+  if (-not (Test-Path $edge)) { return "" }
+  try {
+    return [string](Get-Content $edge -Raw | ConvertFrom-Json).origin
+  } catch {
+    return ""
+  }
+}
+
+function Publish-Origin([string]$url) {
+  $saved = ""
+  if (Test-Path $state) { $saved = (Get-Content $state -Raw).Trim() }
+  if ($url -eq $saved -and $url -eq (Read-PublishedOrigin)) {
+    Write-Output "UNCHANGED $url"
+    return
+  }
+  if (Test-Path $lock) {
+    $age = (Get-Date) - (Get-Item $lock).LastWriteTime
+    if ($age.TotalMinutes -lt 12) { return }
+    Remove-Item $lock -Force -ErrorAction SilentlyContinue
+  }
+  New-Item -ItemType File -Path $lock -Force | Out-Null
+  try {
+    Set-Location $root
+    node scripts/set-origin.mjs $url
+    if ($LASTEXITCODE -ne 0) { throw "Could not publish the API address" }
+    Set-Content -Path $state -Value $url -NoNewline
+    Write-Output "PUBLISHED $url"
+  } finally {
+    Remove-Item $lock -Force -ErrorAction SilentlyContinue
+  }
+}
+
 function Invoke-Keep {
 if (-not (Test-LocalApi)) {
   Start-DataStores
@@ -114,25 +148,16 @@ if (-not (Test-LocalApi)) {
   if (-not $apiUp) { throw "The API on port 4000 did not start." }
 }
 
-if (Test-Path $lock) {
-  $age = (Get-Date) - (Get-Item $lock).LastWriteTime
-  if ($age.TotalMinutes -lt 12) { return }
-  Remove-Item $lock -Force -ErrorAction SilentlyContinue
-}
-
-Stop-OtherTunnels
-
-$saved = ""
-if (Test-Path $state) { $saved = (Get-Content $state -Raw).Trim() }
+# Leave a live tunnel in place. Replacing it on every pass drops the public
+# address before the live site can use it, and sign-in then returns 503.
 $running = @(Our-Tunnels)
-if ($running.Count -gt 0 -and $saved -and (Test-TunnelHealth $saved)) {
-  Write-Output "UNCHANGED $saved"
+$current = Read-TunnelUrl
+if ($running.Count -eq 1 -and $current -and (Test-TunnelHealth $current)) {
+  Publish-Origin $current
   return
 }
 
-Our-Tunnels | ForEach-Object {
-  Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue
-}
+Stop-OtherTunnels
 Start-Sleep -Seconds 1
 Start-Tunnel
 
@@ -145,21 +170,7 @@ for ($i = 0; $i -lt 25; $i++) {
 }
 if (-not $url) { throw "The public API link did not come up. The API on port 4000 must already be running." }
 
-if ($url -eq $saved) {
-  Write-Output "RESTORED $url"
-  return
-}
-
-New-Item -ItemType File -Path $lock -Force | Out-Null
-try {
-  Set-Location $root
-  node scripts/set-origin.mjs $url
-  if ($LASTEXITCODE -ne 0) { throw "Could not publish the API address" }
-  Set-Content -Path $state -Value $url -NoNewline
-  Write-Output "PUBLISHED $url"
-} finally {
-  Remove-Item $lock -Force -ErrorAction SilentlyContinue
-}
+Publish-Origin $url
 }
 
 if ($Loop) {

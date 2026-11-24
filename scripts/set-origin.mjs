@@ -16,12 +16,46 @@ const authPath = join(homedir(), "AppData/Roaming/com.vercel.cli/Data/auth.json"
 const teamSlug = "team_8VxbMGQGRbI8x2VON2hmSPsl";
 const slug = "nirapad-origin";
 
-const auth = JSON.parse(readFileSync(authPath, "utf8"));
-const token = auth.token;
-if (!token) {
-  console.error("Vercel CLI is not signed in.");
-  process.exit(1);
+const VERCEL_CLI_CLIENT_ID = "cl_HYyOPBNtFMfHhaUn9L4QPfTZz6TP47bp";
+
+async function readAuth() {
+  const auth = JSON.parse(readFileSync(authPath, "utf8"));
+  if (!auth.token) {
+    console.error("Vercel CLI is not signed in.");
+    process.exit(1);
+  }
+  if (!auth.expiresAt || auth.expiresAt > Math.floor(Date.now() / 1000) + 60) return auth;
+  if (!auth.refreshToken) {
+    console.error("Vercel CLI session expired. Run `vercel login` and try again.");
+    process.exit(1);
+  }
+  const discovery = await fetch(new URL(".well-known/openid-configuration", "https://vercel.com"));
+  const metadata = await discovery.json();
+  const refreshed = await fetch(metadata.token_endpoint, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      client_id: VERCEL_CLI_CLIENT_ID,
+      grant_type: "refresh_token",
+      refresh_token: auth.refreshToken,
+    }),
+  });
+  const tokens = await refreshed.json();
+  if (!refreshed.ok || typeof tokens.access_token !== "string") {
+    console.error("Vercel CLI session expired. Run `vercel login` and try again.");
+    process.exit(1);
+  }
+  auth.token = tokens.access_token;
+  auth.expiresAt = Math.floor(Date.now() / 1000) + Number(tokens.expires_in || 0);
+  if (typeof tokens.refresh_token === "string" && tokens.refresh_token) {
+    auth.refreshToken = tokens.refresh_token;
+  }
+  writeFileSync(authPath, JSON.stringify(auth, null, 2));
+  return auth;
 }
+
+const auth = await readAuth();
+const token = auth.token;
 
 async function api(path, options = {}) {
   const url = new URL(path, "https://api.vercel.com");
