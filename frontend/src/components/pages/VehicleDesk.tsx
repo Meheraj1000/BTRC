@@ -7,6 +7,7 @@ import { Badge, EmptyState, ErrorState } from "@/components/StatCard";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
+import { statusLabel } from "@/lib/statusLabel";
 import type { RoleCode } from "@/lib/types";
 
 type Mode = "admin" | "owner" | "brta" | "readonly";
@@ -371,11 +372,11 @@ export function VehicleDesk({
                     <td>
                       <Badge tone={row.qrToken ? "teal" : "yellow"}>{row.qrToken ? t("Ready") : t("Pending")}</Badge>
                     </td>
-                    <td><Badge tone={toneFor(row.operationalStatus)}>{row.operationalStatus ? t(row.operationalStatus) : "—"}</Badge></td>
+                    <td><Badge tone={toneFor(row.operationalStatus)}>{row.operationalStatus ? t(statusLabel(row.operationalStatus)) : "—"}</Badge></td>
                     <td>
                       <div className="flex flex-wrap gap-1">
-                        <Badge tone={toneFor(row.registrationStatus)}>{row.registrationStatus ? t(row.registrationStatus) : "—"}</Badge>
-                        <Badge tone={toneFor(row.fitnessStatus)}>{row.fitnessStatus ? t(row.fitnessStatus) : "—"}</Badge>
+                        <Badge tone={toneFor(row.registrationStatus)}>{row.registrationStatus ? t(statusLabel(row.registrationStatus)) : "—"}</Badge>
+                        <Badge tone={toneFor(row.fitnessStatus)}>{row.fitnessStatus ? t(statusLabel(row.fitnessStatus)) : "—"}</Badge>
                       </div>
                     </td>
                     <td>{row.company?.name ?? "—"}</td>
@@ -407,10 +408,10 @@ export function VehicleDesk({
                 <div>{t("Route:")} {selected.route?.name ?? t("Unassigned")}</div>
                 <div>{t("Driver:")} {selected.driver?.name ?? t("Unassigned")}</div>
                 <div className="flex flex-wrap gap-1">
-                  <Badge tone={toneFor(selected.operationalStatus)}>{selected.operationalStatus ? t(selected.operationalStatus) : ""}</Badge>
-                  {selected.registrationStatus && <Badge tone={toneFor(selected.registrationStatus)}>{t("Reg")} {t(selected.registrationStatus)}</Badge>}
-                  {selected.fitnessStatus && <Badge tone={toneFor(selected.fitnessStatus)}>{t("Fitness")} {t(selected.fitnessStatus)}</Badge>}
-                  {selected.insuranceStatus && <Badge tone={toneFor(selected.insuranceStatus)}>{t("Token")} {t(selected.insuranceStatus)}</Badge>}
+                  <Badge tone={toneFor(selected.operationalStatus)}>{selected.operationalStatus ? t(statusLabel(selected.operationalStatus)) : ""}</Badge>
+                  {selected.registrationStatus && <Badge tone={toneFor(selected.registrationStatus)}>{t("Reg")} {t(statusLabel(selected.registrationStatus))}</Badge>}
+                  {selected.fitnessStatus && <Badge tone={toneFor(selected.fitnessStatus)}>{t("Fitness")} {t(statusLabel(selected.fitnessStatus))}</Badge>}
+                  {selected.insuranceStatus && <Badge tone={toneFor(selected.insuranceStatus)}>{t("Token")} {t(statusLabel(selected.insuranceStatus))}</Badge>}
                 </div>
                 {"serviceEligible" in selected && (
                   <div className="text-xs">{selected.serviceEligible ? t("Eligible for a normal trip.") : t("Not eligible for a normal trip.")}</div>

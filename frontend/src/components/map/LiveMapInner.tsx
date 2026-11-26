@@ -15,6 +15,7 @@ import {
   isInBangladesh,
 } from "@/lib/geo/bangladesh";
 import { useI18n } from "@/lib/i18n";
+import { statusLabel } from "@/lib/statusLabel";
 import { routingWaypoints } from "@/lib/roadWaypoints";
 import type { BusLive } from "@/lib/types";
 
@@ -415,7 +416,7 @@ export default function LiveMapInner({
                     {t("Heading")}: {Number(b.heading ?? 0).toFixed(0)}°
                   </div>
                   <div>
-                    {t("GPS")}: {b.trackingState ?? t("ONLINE")}
+                    {t("GPS")}: {t(statusLabel(b.trackingState ?? "ONLINE"))}
                   </div>
                   <div>
                     {t("Route")}: {b.complianceStatus ?? "—"}
@@ -466,7 +467,7 @@ export default function LiveMapInner({
         <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs leading-relaxed text-slate-600">
           {t("Selected")} <strong className="break-all">{selected.registrationNo ?? selected.busId}</strong>
           {" · "}
-          {selected.trackingState ?? "ONLINE"}
+          {t(statusLabel(selected.trackingState ?? "ONLINE"))}
           {selected.complianceStatus ? ` · ${selected.complianceStatus}` : ""}
           {" · "}
           {Number(selected.speed).toFixed(1)} km/h

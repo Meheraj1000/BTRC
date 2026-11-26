@@ -12,18 +12,18 @@ function safeNext(value: string | null) {
   return value;
 }
 
-const DEMOS = [
-  ["admin@nirapad.gov.bd", "Super Admin"],
-  ["government@nirapad.gov.bd", "Government"],
-  ["brta@nirapad.gov.bd", "BRTA"],
-  ["police@nirapad.gov.bd", "Police · Dhaka"],
-  ["police.ctg@nirapad.gov.bd", "Police · Chattogram"],
-  ["police.sylhet@nirapad.gov.bd", "Police · Sylhet"],
-  ["police.rajshahi@nirapad.gov.bd", "Police · Rajshahi"],
-  ["police.khulna@nirapad.gov.bd", "Police · Khulna"],
-  ["owner.greenline@demo.bd", "Bus owner"],
-  ["driver.rahim@demo.bd", "Driver"],
-  ["passenger.fatima@demo.bd", "Passenger"],
+const DEMOS: Array<[string, string, string]> = [
+  ["admin@nirapad.gov.bd", "Super Admin", "You can open every part of the system."],
+  ["government@nirapad.gov.bd", "Government", "You can watch buses and emergencies across the country."],
+  ["brta@nirapad.gov.bd", "BRTA", "You can check fitness certificates, licenses, and violations."],
+  ["police@nirapad.gov.bd", "Police · Dhaka", "You can look up a bus and respond to emergencies in Dhaka."],
+  ["police.ctg@nirapad.gov.bd", "Police · Chattogram", "You can look up a bus and respond to emergencies in Chattogram."],
+  ["police.sylhet@nirapad.gov.bd", "Police · Sylhet", "You can look up a bus and respond to emergencies in Sylhet."],
+  ["police.rajshahi@nirapad.gov.bd", "Police · Rajshahi", "You can look up a bus and respond to emergencies in Rajshahi."],
+  ["police.khulna@nirapad.gov.bd", "Police · Khulna", "You can look up a bus and respond to emergencies in Khulna."],
+  ["owner.greenline@demo.bd", "Bus owner", "You can see your company's buses, drivers, and complaints."],
+  ["driver.rahim@demo.bd", "Driver", "You can see your bus, your route, and today's trip."],
+  ["passenger.fatima@demo.bd", "Passenger", "You can find a bus, scan its code, and ask for help."],
 ];
 
 function LoginForm() {
@@ -34,8 +34,10 @@ function LoginForm() {
   const next = safeNext(search.get("next"));
   const [email, setEmail] = useState("admin@nirapad.gov.bd");
   const [password, setPassword] = useState("Demo@12345");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const selected = DEMOS.find(([address]) => address === email);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -60,13 +62,13 @@ function LoginForm() {
         <div className="mb-6 flex justify-center">
           <BrandMark invert subtitle={t("Bangladesh · Safe public transport")} href="/" />
         </div>
-        <div className="brand-banner mb-4 rounded-xl px-3 py-2 text-xs">
-          {t("Demo password for all seeded accounts:")} <strong>Demo@12345</strong>
+        <div className="brand-banner mb-4 rounded-xl px-3 py-2 text-sm leading-relaxed">
+          {t("Practice password for every sample account:")} <strong>Demo@12345</strong>
         </div>
         <form onSubmit={onSubmit} className="auth-panel" noValidate>
           <h1 className="font-display text-2xl font-semibold tracking-tight">{t("Sign in")}</h1>
-          <p className="mt-1 text-sm text-[var(--text-muted)]">
-            {t("Role-based access for the national transport command demo.")}
+          <p className="mt-1 text-sm leading-relaxed text-[var(--text-muted)]">
+            {t("Choose a role below, then press Sign in. The practice password is already filled in.")}
           </p>
           <label className="mt-5 block text-sm font-medium" htmlFor="login-email">{t("Email")}</label>
           <input
@@ -83,17 +85,29 @@ function LoginForm() {
             required
           />
           <label className="mt-3 block text-sm font-medium" htmlFor="login-password">{t("Password")}</label>
-          <input
-            id="login-password"
-            className="input mt-1"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            type="password"
-            autoComplete="current-password"
-            required
-          />
+          <div className="relative mt-1">
+            <input
+              id="login-password"
+              className="input pr-28"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              type={showPassword ? "text" : "password"}
+              autoComplete="current-password"
+              aria-invalid={error ? true : undefined}
+              aria-describedby={error ? "login-error" : undefined}
+              required
+            />
+            <button
+              type="button"
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg px-2 py-1 text-xs font-semibold text-brand-700 hover:bg-[var(--surface-secondary)]"
+              aria-pressed={showPassword}
+              onClick={() => setShowPassword((value) => !value)}
+            >
+              {showPassword ? t("Hide password") : t("Show password")}
+            </button>
+          </div>
           {error && (
-            <p className="mt-3 rounded-lg bg-[var(--error-bg)] px-3 py-2 text-sm text-[var(--error)]" role="alert">
+            <p id="login-error" className="mt-3 rounded-lg bg-[var(--error-bg)] px-3 py-2 text-sm text-[var(--error)]" role="alert">
               {t(error)}
             </p>
           )}
@@ -113,21 +127,23 @@ function LoginForm() {
         <div className="mt-4 rounded-2xl border border-white/15 bg-white/95 p-4 text-xs text-[var(--text-secondary)]">
           <div className="mb-2 font-semibold text-[var(--text-primary)]">{t("Demo accounts")}</div>
           <div className="flex flex-wrap gap-2">
-            {DEMOS.map(([e, r]) => (
+            {DEMOS.map(([address, role]) => (
               <button
-                key={e}
+                key={address}
                 type="button"
+                aria-pressed={email === address}
                 className={`rounded-full border px-2.5 py-1 transition ${
-                  email === e
+                  email === address
                     ? "border-brand-600 bg-[var(--surface-secondary)] text-brand-700"
                     : "border-[var(--border)] hover:border-brand-600 hover:text-brand-700"
                 }`}
-                onClick={() => setEmail(e)}
+                onClick={() => setEmail(address)}
               >
-                {t(r)}
+                {t(role)}
               </button>
             ))}
           </div>
+          {selected && <p className="mt-3 text-sm leading-relaxed text-[var(--text-secondary)]">{t(selected[2])}</p>}
           <p className="mt-2 text-[var(--text-muted)]">{email}</p>
         </div>
       </div>

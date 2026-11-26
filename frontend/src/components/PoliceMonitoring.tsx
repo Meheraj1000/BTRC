@@ -8,6 +8,7 @@ import { busHasIssue, vehicleRowHasIssue } from "@/lib/busIssue";
 import { useI18n } from "@/lib/i18n";
 import { getSocket } from "@/lib/socket";
 import type { BusLive, Overview } from "@/lib/types";
+import { statusLabel } from "@/lib/statusLabel";
 import { EventDesk } from "./EventDesk";
 import { LiveMap } from "./map/LiveMap";
 import { Badge, EmptyState, ErrorState, StatCard } from "./StatCard";
@@ -199,8 +200,8 @@ export function PoliceMonitoring() {
             />
             <select className="input" aria-label={t("Filter GPS status")} value={gpsFilter} onChange={(e) => setGpsFilter(e.target.value)}>
               <option value="">{t("All GPS")}</option>
-              <option value="ONLINE">{t("ONLINE")}</option>
-              <option value="STALE">{t("STALE")}</option>
+              <option value="ONLINE">{t(statusLabel("ONLINE"))}</option>
+              <option value="STALE">{t(statusLabel("STALE"))}</option>
             </select>
             <select
               className="input"
@@ -209,11 +210,11 @@ export function PoliceMonitoring() {
               onChange={(e) => setComplianceFilter(e.target.value)}
             >
               <option value="">{t("All compliance")}</option>
-              <option value="ON_ROUTE">{t("ON_ROUTE")}</option>
-              <option value="NEAR_ROUTE">{t("NEAR_ROUTE")}</option>
-              <option value="DEVIATING">{t("DEVIATING")}</option>
-              <option value="OFF_ROUTE">{t("OFF_ROUTE")}</option>
-              <option value="STALE">{t("STALE")}</option>
+              <option value="ON_ROUTE">{t(statusLabel("ON_ROUTE"))}</option>
+              <option value="NEAR_ROUTE">{t(statusLabel("NEAR_ROUTE"))}</option>
+              <option value="DEVIATING">{t(statusLabel("DEVIATING"))}</option>
+              <option value="OFF_ROUTE">{t(statusLabel("OFF_ROUTE"))}</option>
+              <option value="STALE">{t(statusLabel("STALE"))}</option>
             </select>
             <Link className="btn btn-primary" href={q.trim() ? `/police/buses?q=${encodeURIComponent(q.trim())}` : "/police/buses"}>
               {t("Full vehicle lookup")}
@@ -259,10 +260,10 @@ export function PoliceMonitoring() {
                     <td>{v.driver?.name ?? "—"}</td>
                     <td>{v.route?.startName ?? "—"}</td>
                     <td>{v.route?.code ?? v.route?.name ?? "—"}</td>
-                    <td><Badge tone={tone(v.trackingState)}>{v.trackingState ?? "—"}</Badge></td>
+                    <td><Badge tone={tone(v.trackingState)}>{v.trackingState ? t(statusLabel(v.trackingState)) : "—"}</Badge></td>
                     <td><Badge tone={tone(v.complianceStatus)}>{v.complianceStatus ?? "—"}</Badge></td>
                     <td>{v.latestLoc?.speed != null ? `${Number(v.latestLoc.speed).toFixed(0)} km/h` : "—"}</td>
-                    <td><Badge tone={tone(v.operationalStatus)}>{v.operationalStatus ?? "—"}</Badge></td>
+                    <td><Badge tone={tone(v.operationalStatus)}>{v.operationalStatus ? t(statusLabel(v.operationalStatus)) : "—"}</Badge></td>
                   </tr>
                 ))}
               </tbody>

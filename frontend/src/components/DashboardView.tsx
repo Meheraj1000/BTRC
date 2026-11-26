@@ -8,6 +8,7 @@ import { getSocket } from "@/lib/socket";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import type { BusLive, Overview } from "@/lib/types";
+import { statusLabel } from "@/lib/statusLabel";
 import { Badge, EmptyState, ErrorState, StatCard } from "./StatCard";
 import { LiveMap } from "./map/LiveMap";
 
@@ -351,7 +352,7 @@ export function DashboardView({
                       <td>{v.driver?.name ?? "—"}</td>
                       <td>{v.route?.code ?? v.route?.name ?? "—"}</td>
                       <td><Badge tone={tone(v.trackingState)}>{v.trackingState ?? "—"}</Badge></td>
-                      <td><Badge tone={tone(v.complianceStatus)}>{v.complianceStatus ?? "—"}</Badge></td>
+                      <td><Badge tone={tone(v.complianceStatus)}>{v.complianceStatus ? t(statusLabel(v.complianceStatus)) : "—"}</Badge></td>
                       <td>{fmtWhen(v.latestLoc?.timestamp)}</td>
                       <td><Badge tone={tone(v.operationalStatus)}>{v.operationalStatus ?? "—"}</Badge></td>
                     </tr>
@@ -470,7 +471,7 @@ export function DashboardView({
               ))}
               {(activity?.complianceEvents ?? []).slice(0, 4).map((e) => (
                 <li key={e.id} className="text-slate-600">
-                  {e.registrationNo} {e.routeCode ? `· ${e.routeCode}` : ""}: {e.fromStatus} → {e.toStatus}
+                  {e.registrationNo} {e.routeCode ? `· ${e.routeCode}` : ""}: {t(statusLabel(e.fromStatus))} → {t(statusLabel(e.toStatus))}
                 </li>
               ))}
             </ul>

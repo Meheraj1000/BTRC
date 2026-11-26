@@ -178,6 +178,29 @@ video {
     animation: none;
     box-shadow: 0 0 0 2px #ffffff, 0 0 0 6px rgba(218, 41, 28, 0.5);
   }
+
+  .animate-fade-up,
+  .animate-fade-in {
+    animation: none;
+  }
+}
+
+.skip-link {
+  position: fixed;
+  left: 0.75rem;
+  top: 0.75rem;
+  z-index: 80;
+  transform: translateY(-150%);
+  border-radius: 0.75rem;
+  background: #ffffff;
+  color: #062819;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.skip-link:focus {
+  transform: none;
 }
 
 .leaflet-popup.bus-issue-popup .leaflet-popup-content-wrapper {

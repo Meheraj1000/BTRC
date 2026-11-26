@@ -9,6 +9,7 @@ import { api } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { isEmergencyComplaint } from "@/lib/inbox";
+import { statusLabel } from "@/lib/statusLabel";
 import type { AuthUser } from "@/lib/types";
 
 type RouteRow = {
@@ -90,7 +91,7 @@ export function PassengerHome() {
   return (
     <AppShell allow={["PASSENGER", "SUPER_ADMIN"]} title="Passenger home">
       {error && <ErrorState message={error} />}
-      <p className="mb-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text-muted)]">{t("Passenger view only. GPS is SIMULATED. This is not a government or emergency dispatch service.")}</p>
+      <p className="mb-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm leading-relaxed text-[var(--text-secondary)]">{t("Locations here are practice data, not a live government feed. For a real emergency, call 999.")}</p>
       <section className="card mb-4 border-l-4 border-l-[var(--brand-primary)] p-4 sm:p-5">
         <h2 className="font-display text-base font-semibold tracking-tight">{t("Boarded a bus?")}</h2>
         <p className="mt-1 text-sm text-[var(--text-secondary)]">
@@ -114,12 +115,12 @@ export function PassengerHome() {
       </div>
       {loading && !routes.length ? <p className="text-sm text-slate-500">{t("Loading…")}</p> : null}
       <h2 className="font-display mb-2 text-base font-semibold tracking-tight">{t("Nearby / trackable buses")}</h2>
-      {!nearby.length ? <EmptyState title={t("No nearby buses")} body={t("No simulated positions are within 8 km of your location (or Dhaka fallback).")} /> : (
+      {!nearby.length ? <EmptyState title={t("No nearby buses")} body={t("No buses are close to you right now. Search a route or open the map.")} /> : (
         <div className="mb-4 grid gap-3 md:grid-cols-2">
           {nearby.slice(0, 6).map((b) => (
             <Link key={String(b.busId)} href={`/passenger/buses/${String(b.busId)}`} className="card block p-4">
               <div className="font-semibold">{String(b.registrationNo ?? t("Bus"))}</div>
-              <div className="text-sm text-slate-500">{String(b.routeName ?? t("Unassigned"))} · {String(b.trackingState ?? "ONLINE")} · {Number(b.speed).toFixed(0)} {t("km/h")}</div>
+              <div className="text-sm text-slate-500">{String(b.routeName ?? t("Unassigned"))} · {t(statusLabel(String(b.trackingState ?? "ONLINE")))} · {Number(b.speed).toFixed(0)} {t("km/h")}</div>
             </Link>
           ))}
         </div>

@@ -5,6 +5,7 @@ import { LiveMap } from "@/components/map/LiveMap";
 import { Badge, ErrorState } from "@/components/StatCard";
 import { api } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
+import { statusLabel } from "@/lib/statusLabel";
 import type { BusLive } from "@/lib/types";
 
 type BusDetail = {
@@ -161,7 +162,7 @@ export function NoticeVehicleDetail({
                 {bus.yearOfManufacture ? ` (${bus.yearOfManufacture})` : ""}
               </div>
               <div className="mt-1 flex flex-wrap gap-1">
-                <Badge tone={bus.operationalStatus === "ACTIVE" ? "green" : "yellow"}>{bus.operationalStatus ? t(bus.operationalStatus) : "—"}</Badge>
+                <Badge tone={bus.operationalStatus === "ACTIVE" ? "green" : "yellow"}>{bus.operationalStatus ? t(statusLabel(bus.operationalStatus)) : "—"}</Badge>
                 {bus.registrationStatus && <Badge tone="slate">{t("Reg")} {t(bus.registrationStatus)}</Badge>}
                 {bus.fitnessStatus && <Badge tone="slate">{t("Fitness")} {t(bus.fitnessStatus)}</Badge>}
               </div>
@@ -187,7 +188,7 @@ export function NoticeVehicleDetail({
               <h4 className="font-display text-sm font-semibold">{t("Live location")}</h4>
               {live && (
                 <span className="text-xs text-[var(--text-muted)]">
-                  {t(live.trackingState ?? "ONLINE")} · {Number(live.speed).toFixed(0)} {t("km/h")} ·{" "}
+                  {t(statusLabel(live.trackingState ?? "ONLINE"))} · {Number(live.speed).toFixed(0)} {t("km/h")} ·{" "}
                   {live.timestamp ? new Date(live.timestamp).toLocaleString() : "—"}
                 </span>
               )}
